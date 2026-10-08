@@ -218,7 +218,7 @@ export default function ElakarKhoborHome() {
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // PUBLIC ARTICLES STATE
+  // PUBLIC ARTICLES STATE (WITH IMAGE SUPPORT)
   const [publicArticles, setPublicArticles] = useState<any[]>([
     {
       id: 1,
@@ -230,7 +230,8 @@ export default function ElakarKhoborHome() {
       summary_bn: 'বাজারের প্রবেশমুখে ১০টি নতুন আধুনিক সড়ক বাতি চালু করা হয়েছে।',
       summary_en: 'Ten new high-efficiency solar street lamps turned on at commercial crossing.',
       author_bn: 'এলাকার খবর ডেস্ক',
-      author_en: 'Local Desk'
+      author_en: 'Local Desk',
+      image_url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 2,
@@ -242,7 +243,8 @@ export default function ElakarKhoborHome() {
       summary_bn: 'নদী তীরের নিরাপত্তা বজায় রাখতে ভারী ট্রাক চলাচল সীমিত করার নির্দেশনা জারি।',
       summary_en: 'Heavy vehicle transit restricted along riverside embankment to protect local safety.',
       author_bn: 'মাঠ প্রতিবেদক',
-      author_en: 'Field Reporter'
+      author_en: 'Field Reporter',
+      image_url: ''
     },
     {
       id: 3,
@@ -254,11 +256,12 @@ export default function ElakarKhoborHome() {
       summary_bn: 'সাধারণ মানুষের মাঝে রক্তচাপ ও ডায়াবেটিস পরীক্ষা করে ওষুধ বিতরণ করা হয়েছে।',
       summary_en: 'Free medical screening and vital health medicines distributed to community residents.',
       author_bn: 'বিশেষ প্রতিনিধি',
-      author_en: 'Special Reporter'
+      author_en: 'Special Reporter',
+      image_url: ''
     }
   ]);
 
-  // SECRET ARTICLES STATE (AES ENCRYPTED VAULT)
+  // SECRET ARTICLES STATE (PRERENDER COMPATIBLE STATIC CIPHER STRINGS)
   const [secretArticles, setSecretArticles] = useState<any[]>([
     {
       id: 'sec-01',
@@ -285,6 +288,7 @@ export default function ElakarKhoborHome() {
   const [newSummaryEn, setNewSummaryEn] = useState('');
   const [newAuthorBn, setNewAuthorBn] = useState('নিজস্ব প্রতিবেদক');
   const [newAuthorEn, setNewAuthorEn] = useState('Staff Reporter');
+  const [newImageBase64, setNewImageBase64] = useState('');
 
   // SECRET VAULT FORM STATE
   const [newSecretCode, setNewSecretCode] = useState('DOC-2026-X10');
@@ -313,6 +317,33 @@ export default function ElakarKhoborHome() {
     summaryEn: 'Sustainable drainage construction to be initiated from Muktir Dokan to Wapdar Matha to prevent monsoon waterlogging.',
     authorBn: 'নিজস্ব প্রতিবেদক',
     authorEn: 'Staff Reporter'
+  };
+
+  // CLIENT FILE PICKER TO BASE64 CONVERTER
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert(lang === 'bn' ? 'ছবির সাইজ সর্বোচ্চ 2MB হতে পারবে।' : 'Max image size is 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewImageBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // FACEBOOK SHARE FUNCTION (ZERO ERROR POPUP)
+  const handleFacebookShare = (title: string, summary: string) => {
+    if (typeof window === 'undefined') return;
+    const currentUrl = window.location.origin;
+    const shareText = `${title}\n\n${summary}\n\nবিস্তারিত পড়ুন 'এলাকার খবর'-এ:`;
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}&quote=${encodeURIComponent(shareText)}`;
+    
+    // Popup open without navigation error
+    window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580,toolbar=0,status=0');
   };
 
   const fetchPublicArticles = async () => {
@@ -390,7 +421,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // SECURE PUBLISH PUBLIC NEWS (WITH FAILSAFE)
+  // SECURE PUBLISH PUBLIC NEWS (WITH IMAGE & FAILSAFE)
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -405,7 +436,8 @@ export default function ElakarKhoborHome() {
       summary_bn: newSummaryBn,
       summary_en: newSummaryEn,
       author_bn: newAuthorBn || 'নিজস্ব প্রতিবেদক',
-      author_en: newAuthorEn || 'Staff Reporter'
+      author_en: newAuthorEn || 'Staff Reporter',
+      image_url: newImageBase64 || ''
     };
 
     try {
@@ -423,6 +455,7 @@ export default function ElakarKhoborHome() {
           summary_en: newSummaryEn,
           author_bn: newAuthorBn,
           author_en: newAuthorEn,
+          image_url: newImageBase64 || '',
         }),
       });
 
@@ -441,6 +474,7 @@ export default function ElakarKhoborHome() {
       setNewTitleEn('');
       setNewSummaryBn('');
       setNewSummaryEn('');
+      setNewImageBase64('');
     } catch (err: any) {
       setPublicArticles(prev => [fallbackArticle, ...prev]);
       alert(lang === 'bn' ? 'সংবাদ প্রকাশিত হয়েছে!' : 'News published successfully!');
@@ -448,6 +482,7 @@ export default function ElakarKhoborHome() {
       setNewTitleEn('');
       setNewSummaryBn('');
       setNewSummaryEn('');
+      setNewImageBase64('');
     } finally {
       setIsSubmittingNews(false);
     }
@@ -745,7 +780,18 @@ export default function ElakarKhoborHome() {
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-light">{lang === 'bn' ? leadNews.summaryBn : leadNews.summaryEn}</p>
             <div className="flex items-center justify-between border-t border-white/10 pt-4">
               <span className="text-xs text-slate-400">{lang === 'bn' ? leadNews.authorBn : leadNews.authorEn}</span>
-              <button className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600/90 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 transition">{t.leadReadMore}</button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => handleFacebookShare(lang === 'bn' ? leadNews.titleBn : leadNews.titleEn, lang === 'bn' ? leadNews.summaryBn : leadNews.summaryEn)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition"
+                >
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share'}
+                </button>
+                <button className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600/90 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 transition">{t.leadReadMore}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -778,24 +824,44 @@ export default function ElakarKhoborHome() {
             .map(item => (
               <div
                 key={item.id}
-                className="bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 border border-white/10 hover:border-rose-500/50 hover:bg-white/[0.06] transition duration-300 flex flex-col justify-between"
+                className="bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 border border-white/10 hover:border-rose-500/50 hover:bg-white/[0.06] transition duration-300 flex flex-col justify-between overflow-hidden"
               >
                 <div>
+                  {item.image_url && (
+                    <div className="w-full h-44 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950">
+                      <img 
+                        src={item.image_url} 
+                        alt="News Cover" 
+                        className="w-full h-full object-cover hover:scale-105 transition duration-500" 
+                      />
+                    </div>
+                  )}
                   <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-900/80 border border-white/10 text-rose-300">{lang === 'bn' ? item.tag_bn : item.tag_en}</span>
                   <h3 className="text-base sm:text-lg font-bold text-white mt-3 mb-2">{lang === 'bn' ? item.title_bn : item.title_en}</h3>
                   <p className="text-xs text-slate-300/80 leading-relaxed mb-4">{lang === 'bn' ? item.summary_bn : item.summary_en}</p>
                 </div>
-                <div className="flex justify-between items-center pt-3 border-t border-white/5 text-xs text-slate-400">
-                  <span>{lang === 'bn' ? item.author_bn : item.author_en}</span>
-                  <div className="flex items-center gap-2">
+                
+                <div className="pt-3 border-t border-white/5 space-y-3">
+                  <div className="flex justify-between items-center text-xs text-slate-400">
+                    <span>{lang === 'bn' ? item.author_bn : item.author_en}</span>
                     {isAdminLoggedIn && (
                       <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px]">
                         ✕ {lang === 'bn' ? 'মুছুন' : 'Delete'}
                       </button>
                     )}
-                    <span className="text-rose-400 font-bold cursor-pointer">
-                      {lang === 'bn' ? 'বিস্তারিত →' : 'Read details →'}
-                    </span>
+                  </div>
+                  
+                  {/* FACEBOOK DIRECT SHARE BUTTON */}
+                  <div className="flex items-center justify-between gap-2">
+                    <button 
+                      onClick={() => handleFacebookShare(lang === 'bn' ? item.title_bn : item.title_en, lang === 'bn' ? item.summary_bn : item.summary_en)}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share on Facebook'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -936,9 +1002,9 @@ export default function ElakarKhoborHome() {
               <button onClick={() => setIsAdminPanelOpen(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
             </div>
 
-            {/* ১. নতুন প্রকাশ্য দ্বৈতভাষিক সংবাদ পোস্ট ফর্ম */}
+            {/* ১. নতুন প্রকাশ্য দ্বৈতভাষিক সংবাদ পোস্ট ফর্ম (WITH DIRECT PHOTO PICKER) */}
             <div className="bg-slate-950/80 p-5 rounded-2xl border border-rose-500/30">
-              <h4 className="text-sm font-bold text-rose-400 mb-4">{lang === 'bn' ? '১. নতুন দ্বৈতভাষিক প্রকাশ্য সংবাদ যোগ করুন' : '1. Publish Bilingual Public News'}</h4>
+              <h4 className="text-sm font-bold text-rose-400 mb-4">{lang === 'bn' ? '১. নতুন দ্বৈতভাষিক প্রকাশ্য সংবাদ যোগ করুন (ছবি সহ)' : '1. Publish Bilingual Public News (With Photo)'}</h4>
               <form onSubmit={handlePublishNews} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -979,6 +1045,29 @@ export default function ElakarKhoborHome() {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* DEVICE DIRECT PHOTO UPLOADER */}
+                <div>
+                  <label className="text-[11px] text-rose-400 font-bold mb-1 block">
+                    📷 সংবাদের ছবি যুক্ত করুন (মোবাইল / কম্পিউটার থেকে সিলেক্ট করুন)
+                  </label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-rose-600/20 file:text-rose-300 hover:file:bg-rose-600/30 cursor-pointer bg-slate-900 p-2 rounded-xl border border-white/10"
+                  />
+                  {newImageBase64 && (
+                    <div className="mt-2 w-32 h-20 rounded-lg overflow-hidden border border-rose-500/40 relative">
+                      <img src={newImageBase64} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        type="button" 
+                        onClick={() => setNewImageBase64('')}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                      >✕</button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1036,7 +1125,7 @@ export default function ElakarKhoborHome() {
                   disabled={isSubmittingNews}
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-bold text-xs shadow-lg transition"
                 >
-                  {isSubmittingNews ? (lang === 'bn' ? 'সংরক্ষণ করা হচ্ছে...' : 'Publishing...') : (lang === 'bn' ? 'প্রকাশ্য সংবাদ হিসেবে পাবলিশ করুন' : 'Publish Public News')}
+                  {isSubmittingNews ? (lang === 'bn' ? 'সংরক্ষণ করা হচ্ছে...' : 'Publishing...') : (lang === 'bn' ? 'ছবিসহ সংবাদ প্রকাশ করুন' : 'Publish News with Photo')}
                 </button>
               </form>
             </div>
