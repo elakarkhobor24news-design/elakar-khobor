@@ -197,7 +197,7 @@ export default function ElakarKhoborHome() {
   const [timeStr, setTimeStr] = useState('');
   const [weatherStr, setWeatherStr] = useState('');
 
-  // মোডাল স্টেটসমূহ
+  // Modals
   const [isTipModalOpen, setIsTipModalOpen] = useState(false);
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -207,10 +207,10 @@ export default function ElakarKhoborHome() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [policyTab, setPolicyTab] = useState<'about' | 'editorial' | 'privacy' | 'contact'>('about');
 
-  // বিস্তারিত পড়ার মোডাল (Detailed News Reader)
+  // Reader Modal
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
-  // গোপন অনুসন্ধানী ভল্ট
+  // Vault states
   const [selectedSecretId, setSelectedSecretId] = useState('');
   const [unlockPin, setUnlockPin] = useState('');
   const [unlockError, setUnlockError] = useState(false);
@@ -218,15 +218,13 @@ export default function ElakarKhoborHome() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [citizenTips, setCitizenTips] = useState<any[]>([]);
 
-  // অ্যাডমিন স্টেট
+  // Admin login states
   const [adminPin, setAdminPin] = useState('');
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // কোনো ডামি পোস্ট রাখা হয়নি - আপনি পোস্ট করলেই সুন্দর কার্ডে শো করবে
+  // News list
   const [publicArticles, setPublicArticles] = useState<any[]>([]);
-
-  // গোপন অনুসন্ধানী নথি
   const [secretArticles, setSecretArticles] = useState<any[]>([
     {
       id: 'sec-01',
@@ -243,10 +241,10 @@ export default function ElakarKhoborHome() {
 
   const [isSubmittingNews, setIsSubmittingNews] = useState(false);
 
-  // পাবলিক নিউজ ফর্ম ইনপুট
-  const [newCategory, setNewCategory] = useState('muktir-dokan');
-  const [newTagBn, setNewTagBn] = useState('মুক্তির দোকান');
-  const [newTagEn, setNewTagEn] = useState('Muktir Dokan');
+  // Form states
+  const [newCategory, setNewCategory] = useState('durga-mondir');
+  const [newTagBn, setNewTagBn] = useState('দুর্গা মন্দির');
+  const [newTagEn, setNewTagEn] = useState('Durga Mondir');
   const [newTitleBn, setNewTitleBn] = useState('');
   const [newTitleEn, setNewTitleEn] = useState('');
   const [newSummaryBn, setNewSummaryBn] = useState('');
@@ -255,7 +253,7 @@ export default function ElakarKhoborHome() {
   const [newAuthorEn, setNewAuthorEn] = useState('Staff Reporter');
   const [newImageBase64, setNewImageBase64] = useState('');
 
-  // সিক্রেট নিউজ ফর্ম ইনপুট
+  // Secret form
   const [newSecretCode, setNewSecretCode] = useState('DOC-2026-X10');
   const [newSecretTitleBn, setNewSecretTitleBn] = useState('');
   const [newSecretTitleEn, setNewSecretTitleEn] = useState('');
@@ -274,21 +272,29 @@ export default function ElakarKhoborHome() {
 
   const t = translations[lang];
 
-  const leadNews = {
-    id: 'lead-01',
-    titleBn: 'বারুণা পশ্চিম পাড়ায় নতুন আধুনিক ড্রেনেজ ব্যবস্থার উদ্যোগ',
-    titleEn: 'Modern drainage system initiative in Baruna Poschim Para',
-    summaryBn: 'বর্ষায় জলাবদ্ধতা নিরসনে মুক্তির দোকান থেকে ওয়াপদার মাথা পর্যন্ত টেকসই ড্রেন নির্মাণের কাজ দ্রুত শুরু হতে যাচ্ছে। স্থানীয় জনপ্রতিনিধি ও গণ্যমান্য ব্যক্তিবর্গের উপস্থিতিতে পরিমাপ কাজ শেষ হয়েছে।',
-    summaryEn: 'Sustainable drainage construction to be initiated from Muktir Dokan to Wapdar Matha to prevent monsoon waterlogging with community leaders.',
-    authorBn: 'নিজস্ব প্রতিবেদক',
-    authorEn: 'Staff Reporter',
+  // DYNAMIC HERO NEWS (Shobar prothom/latest public news ti Hero section-e automatic boshe jabe)
+  const latestLead = publicArticles.length > 0 ? publicArticles[0] : {
+    id: 'default-01',
+    category: 'poschim-para',
+    tag_bn: 'প্রধান সংবাদ',
+    tag_en: 'Breaking News',
+    title_bn: 'বারুণা পশ্চিম পাড়ার সর্বশেষ উন্নয়ন ও সত্য অনুসন্ধানী সংবাদ',
+    title_en: 'Latest verified community reports of Baruna Poschim Para',
+    summary_bn: 'পশ্চিম পাড়ার সকল নিয়মিত সংবাদ, ঘোষণা ও নাগরিক মতামত জানতে ভিজিট করুন।',
+    summary_en: 'Stay updated with ground verified regional information and community notifications.',
+    author_bn: 'এলাকার খবর ডেস্ক',
+    author_en: 'News Desk',
     image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1000&q=80'
   };
 
-  // ডিভাইস থেকে ছবি আপলোড ও অপ্টিমাইজেশন
+  // Image Upload Handler
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert(lang === 'bn' ? 'ছবির সাইজ সর্বোচ্চ 2MB হতে পারবে।' : 'Max image size is 2MB.');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -309,7 +315,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // ফেসবুকে সরাসরি ওয়ান-ক্লিক শেয়ার
+  // Facebook Direct Share
   const handleFacebookShare = (title: string, summary: string) => {
     if (typeof window === 'undefined') return;
     const currentUrl = window.location.origin;
@@ -318,7 +324,6 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // ডেটা লোড
   const loadArticles = () => {
     try {
       const stored = localStorage.getItem('elakar_final_clean_news');
@@ -373,7 +378,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // প্রকাশ্য সংবাদ পাবলিশ
+  // Publish Public News
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -392,6 +397,7 @@ export default function ElakarKhoborHome() {
       image_url: newImageBase64 || ''
     };
 
+    // Notun post ti ekebare shobcheye shuru-te (index 0) thakbe jate Hero ebong Breaking-e direct cole jay
     const updated = [newArticle, ...publicArticles];
     setPublicArticles(updated);
     localStorage.setItem('elakar_final_clean_news', JSON.stringify(updated));
@@ -425,7 +431,7 @@ export default function ElakarKhoborHome() {
     setIsSubmittingNews(false);
   };
 
-  // গোপন অনুসন্ধানী প্রতিবেদন পাবলিশ
+  // Publish Secret Vault News
   const handlePublishSecretNews = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSecretCustomPin.trim()) {
@@ -460,7 +466,7 @@ export default function ElakarKhoborHome() {
     setNewSecretCustomPin('');
   };
 
-  // ডিলিট
+  // Delete
   const handleDeleteNews = (id: number) => {
     if (!confirm(lang === 'bn' ? 'এই সংবাদটি মুছে ফেলতে চান?' : 'Delete this news?')) return;
     const filtered = publicArticles.filter(item => item.id !== id);
@@ -468,7 +474,7 @@ export default function ElakarKhoborHome() {
     localStorage.setItem('elakar_final_clean_news', JSON.stringify(filtered));
   };
 
-  // আনলক ভল্ট
+  // Unlock Secret Vault
   const handleUnlockSecret = (e: React.FormEvent) => {
     e.preventDefault();
     const doc = secretArticles.find(d => d.id === selectedSecretId);
@@ -486,7 +492,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // ক্লিয়ারেন্স রিকোয়েস্ট
+  // Clearance Submit
   const handleClearanceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newReq = {
@@ -516,7 +522,7 @@ export default function ElakarKhoborHome() {
     localStorage.setItem('elakar_pending_requests', JSON.stringify(upReqs));
   };
 
-  // সিটিজেন টিপ
+  // Citizen Tip Submit
   const handleTipSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newTip = {
@@ -535,7 +541,7 @@ export default function ElakarKhoborHome() {
     setTipContent('');
   };
 
-  // সম্পূর্ণ সুরক্ষিত ও সিক্রেট অ্যাডমিন লগইন (কোনো স্ক্রিন হিন্ট নেই)
+  // Admin Login
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminPinError(false);
@@ -626,7 +632,7 @@ export default function ElakarKhoborHome() {
         )}
       </header>
 
-      {/* TICKER */}
+      {/* DYNAMIC BREAKING TICKER (Latest published news automatically shows here) */}
       <div className="relative z-10 border-y border-white/5 bg-slate-950/40 backdrop-blur-sm flex items-center overflow-hidden">
         <div className="bg-rose-600 text-white text-xs font-black px-4 py-2 shrink-0 uppercase tracking-wider flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
@@ -634,12 +640,13 @@ export default function ElakarKhoborHome() {
         </div>
         <div className="overflow-hidden whitespace-nowrap py-2 w-full text-xs text-slate-300">
           <div className="inline-block animate-pulse">
-            ★ {lang === 'bn' ? leadNews.titleBn : leadNews.titleEn} &nbsp;&nbsp;&nbsp;&nbsp; ★ {publicArticles[0] ? (lang === 'bn' ? publicArticles[0].title_bn : publicArticles[0].title_en) : ''}
+            ★ {lang === 'bn' ? latestLead.title_bn : latestLead.title_en} 
+            {publicArticles.length > 1 && ` &nbsp;&nbsp;&nbsp;&nbsp; ★ ${lang === 'bn' ? publicArticles[1].title_bn : publicArticles[1].title_en}`}
           </div>
         </div>
       </div>
 
-      {/* HERO SECTION */}
+      {/* DYNAMIC HERO SECTION (Latest News Auto-populated) */}
       <section id="hero" className="relative z-10 py-16 px-4">
         <div className="max-w-5xl mx-auto flex flex-col items-start">
           <div className="flex flex-wrap items-center justify-between gap-4 w-full mb-4">
@@ -653,19 +660,27 @@ export default function ElakarKhoborHome() {
           <h1 className="text-4xl sm:text-7xl font-black text-rose-500 tracking-tight mb-4 drop-shadow-lg">{t.brand}</h1>
 
           <div className="w-full bg-white/[0.03] backdrop-blur-[2px] rounded-3xl p-6 sm:p-10 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300">
-            {leadNews.image_url && (
+            {latestLead.image_url && (
               <div className="w-full h-56 sm:h-80 mb-6 rounded-2xl overflow-hidden border border-white/10">
-                <img src={leadNews.image_url} alt="Lead cover" className="w-full h-full object-cover" />
+                <img src={latestLead.image_url} alt="Lead cover" className="w-full h-full object-cover" />
               </div>
             )}
-            <span className="px-2.5 py-1 rounded-md text-[11px] font-black uppercase bg-rose-600 text-white mb-3 inline-block shadow-md shadow-rose-900/40">{t.leadTag}</span>
-            <h2 className="text-xl sm:text-3xl font-extrabold text-white mb-3 leading-snug">{lang === 'bn' ? leadNews.titleBn : leadNews.titleEn}</h2>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-light">{lang === 'bn' ? leadNews.summaryBn : leadNews.summaryEn}</p>
+            <span className="px-2.5 py-1 rounded-md text-[11px] font-black uppercase bg-rose-600 text-white mb-3 inline-block shadow-md shadow-rose-900/40">
+              {lang === 'bn' ? (latestLead.tag_bn || 'তাজা খবর') : (latestLead.tag_en || 'Top Story')}
+            </span>
+            <h2 className="text-xl sm:text-3xl font-extrabold text-white mb-3 leading-snug">
+              {lang === 'bn' ? latestLead.title_bn : latestLead.title_en}
+            </h2>
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-light line-clamp-3">
+              {lang === 'bn' ? latestLead.summary_bn : latestLead.summary_en}
+            </p>
             <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-4 gap-4">
-              <span className="text-xs text-slate-400">{lang === 'bn' ? leadNews.authorBn : leadNews.authorEn}</span>
+              <span className="text-xs text-slate-400">
+                {lang === 'bn' ? latestLead.author_bn : latestLead.author_en}
+              </span>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => handleFacebookShare(lang === 'bn' ? leadNews.titleBn : leadNews.titleEn, lang === 'bn' ? leadNews.summaryBn : leadNews.summaryEn)}
+                  onClick={() => handleFacebookShare(lang === 'bn' ? latestLead.title_bn : latestLead.title_en, lang === 'bn' ? latestLead.summary_bn : latestLead.summary_en)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition"
                 >
                   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -674,17 +689,7 @@ export default function ElakarKhoborHome() {
                   {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share'}
                 </button>
                 <button 
-                  onClick={() => setSelectedArticle({
-                    title_bn: leadNews.titleBn,
-                    title_en: leadNews.titleEn,
-                    summary_bn: leadNews.summaryBn,
-                    summary_en: leadNews.summaryEn,
-                    author_bn: leadNews.authorBn,
-                    author_en: leadNews.authorEn,
-                    tag_bn: 'বিশেষ প্রতিবেদন',
-                    tag_en: 'Special Report',
-                    image_url: leadNews.image_url
-                  })}
+                  onClick={() => setSelectedArticle(latestLead)}
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600/90 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 transition"
                 >
                   {t.leadReadMore}
@@ -695,7 +700,7 @@ export default function ElakarKhoborHome() {
         </div>
       </section>
 
-      {/* PUBLIC NEWS SECTION */}
+      {/* PUBLIC NEWS GRID (Compact, Balanced Box Size, Strict Language Toggle) */}
       <section id="public-news-section" className="relative z-10 max-w-7xl mx-auto px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-white/10">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">{t.publicTitle}</h2>
@@ -726,65 +731,82 @@ export default function ElakarKhoborHome() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {publicArticles
               .filter(item => activeFilter === 'all' || item.category === activeFilter)
-              .filter(item => ((item.title_bn || '') + (item.title_en || '')).toLowerCase().includes(searchQuery.toLowerCase()))
-              .map(item => (
-                <div
-                  key={item.id}
-                  className="bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 border border-white/10 hover:border-rose-500/50 hover:bg-white/[0.06] transition duration-300 flex flex-col justify-between overflow-hidden"
-                >
-                  <div>
-                    {item.image_url && (
-                      <div 
-                        onClick={() => setSelectedArticle(item)}
-                        className="w-full h-44 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
-                      >
-                        <img 
-                          src={item.image_url} 
-                          alt="News Cover" 
-                          className="w-full h-full object-cover hover:scale-105 transition duration-500" 
-                        />
-                      </div>
-                    )}
-                    <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-900/80 border border-white/10 text-rose-300">{lang === 'bn' ? item.tag_bn : item.tag_en}</span>
-                    <h3 
-                      onClick={() => setSelectedArticle(item)}
-                      className="text-base sm:text-lg font-bold text-white mt-3 mb-2 cursor-pointer hover:text-rose-400 transition"
-                    >
-                      {lang === 'bn' ? item.title_bn : item.title_en}
-                    </h3>
-                    <p className="text-xs text-slate-300/80 leading-relaxed mb-4 line-clamp-3">{lang === 'bn' ? item.summary_bn : item.summary_en}</p>
-                  </div>
-                  
-                  <div className="pt-3 border-t border-white/5 space-y-3">
-                    <div className="flex justify-between items-center text-xs text-slate-400">
-                      <span>{lang === 'bn' ? item.author_bn : item.author_en}</span>
-                      <div className="flex items-center gap-2">
-                        {isAdminLoggedIn && (
-                          <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px]">
-                            ✕ {lang === 'bn' ? 'মুছুন' : 'Delete'}
-                          </button>
-                        )}
-                        <button 
+              .filter(item => ((lang === 'bn' ? item.title_bn : item.title_en) || '').toLowerCase().includes(searchQuery.toLowerCase()))
+              .map(item => {
+                // Precise language selection (No mixing)
+                const currentTag = lang === 'bn' ? (item.tag_bn || 'সাধারণ') : (item.tag_en || 'General');
+                const currentTitle = lang === 'bn' ? (item.title_bn || item.title_en) : (item.title_en || item.title_bn);
+                const currentSummary = lang === 'bn' ? (item.summary_bn || item.summary_en) : (item.summary_en || item.summary_bn);
+                const currentAuthor = lang === 'bn' ? (item.author_bn || 'নিজস্ব প্রতিবেদক') : (item.author_en || 'Staff Reporter');
+
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 border border-white/10 hover:border-rose-500/50 hover:bg-white/[0.06] transition duration-300 flex flex-col justify-between overflow-hidden"
+                  >
+                    <div>
+                      {item.image_url && (
+                        <div 
                           onClick={() => setSelectedArticle(item)}
-                          className="text-rose-400 hover:text-rose-300 font-bold"
+                          className="w-full h-48 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
                         >
-                          {lang === 'bn' ? 'বিস্তারিত →' : 'Read details →'}
-                        </button>
-                      </div>
+                          <img 
+                            src={item.image_url} 
+                            alt="News Cover" 
+                            className="w-full h-full object-cover hover:scale-105 transition duration-500" 
+                          />
+                        </div>
+                      )}
+                      
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-900/80 border border-white/10 text-rose-300">
+                        {currentTag}
+                      </span>
+
+                      {/* COMPACT BALANCED TITLE (Max 2 lines) */}
+                      <h3 
+                        onClick={() => setSelectedArticle(item)}
+                        className="text-base font-bold text-white mt-2.5 mb-2 cursor-pointer hover:text-rose-400 transition line-clamp-2 leading-snug"
+                      >
+                        {currentTitle}
+                      </h3>
+
+                      {/* COMPACT SUMMARY (Max 3 lines, eliminates infinite stretched box) */}
+                      <p className="text-xs text-slate-300/80 leading-relaxed mb-4 line-clamp-3">
+                        {currentSummary}
+                      </p>
                     </div>
                     
-                    <button 
-                      onClick={() => handleFacebookShare(lang === 'bn' ? item.title_bn : item.title_en, lang === 'bn' ? item.summary_bn : item.summary_en)}
-                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm"
-                    >
-                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                      </svg>
-                      {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share on Facebook'}
-                    </button>
+                    <div className="pt-3 border-t border-white/5 space-y-3">
+                      <div className="flex justify-between items-center text-xs text-slate-400">
+                        <span>{currentAuthor}</span>
+                        <div className="flex items-center gap-2">
+                          {isAdminLoggedIn && (
+                            <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px]">
+                              ✕ {lang === 'bn' ? 'মুছুন' : 'Delete'}
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => setSelectedArticle(item)}
+                            className="text-rose-400 hover:text-rose-300 font-bold"
+                          >
+                            {lang === 'bn' ? 'বিস্তারিত →' : 'Read details →'}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleFacebookShare(currentTitle, currentSummary)}
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                        {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share on Facebook'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
         )}
       </section>
@@ -848,7 +870,7 @@ export default function ElakarKhoborHome() {
             >✕</button>
 
             <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-600/20 text-rose-300 border border-rose-500/30">
-              {lang === 'bn' ? selectedArticle.tag_bn : selectedArticle.tag_en}
+              {lang === 'bn' ? (selectedArticle.tag_bn || 'সংবাদ') : (selectedArticle.tag_en || 'News')}
             </span>
 
             <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
@@ -873,7 +895,10 @@ export default function ElakarKhoborHome() {
 
             <div className="pt-4 border-t border-white/10 flex justify-between items-center">
               <button 
-                onClick={() => handleFacebookShare(lang === 'bn' ? selectedArticle.title_bn : selectedArticle.title_en, lang === 'bn' ? selectedArticle.summary_bn : selectedArticle.summary_en)}
+                onClick={() => handleFacebookShare(
+                  lang === 'bn' ? selectedArticle.title_bn : selectedArticle.title_en, 
+                  lang === 'bn' ? selectedArticle.summary_bn : selectedArticle.summary_en
+                )}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1877F2] text-white text-xs font-bold transition shadow-lg hover:bg-blue-600"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -933,7 +958,7 @@ export default function ElakarKhoborHome() {
         </div>
       )}
 
-      {/* ADMIN LOGIN MODAL (NO PASSWORD HINT ON SCREEN) */}
+      {/* ADMIN LOGIN MODAL (NO PASSWORD HINT) */}
       {isAdminLoginOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-sm text-center relative shadow-2xl">
@@ -991,9 +1016,9 @@ export default function ElakarKhoborHome() {
                       }}
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white"
                     >
+                      <option value="durga-mondir">দুর্গা মন্দির / Durga Mondir</option>
                       <option value="muktir-dokan">মুক্তির দোকান / Muktir Dokan</option>
                       <option value="wapdar-matha">ওয়াপদার মাথা / Wapdar Matha</option>
-                      <option value="durga-mondir">দুর্গা মন্দির / Durga Mondir</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -1042,22 +1067,22 @@ export default function ElakarKhoborHome() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] text-slate-400">শিরোনাম (বাংলা)</label>
+                    <label className="text-[11px] text-slate-400">শিরোনাম (বাংলা - ছোট ও স্পষ্ট)</label>
                     <input 
                       required 
                       type="text" 
-                      placeholder="বাংলা শিরোনাম..." 
+                      placeholder="যেমন: দুর্গা মন্দির প্রাঙ্গণে সাজসজ্জা..." 
                       value={newTitleBn} 
                       onChange={e => setNewTitleBn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400">Title (English)</label>
+                    <label className="text-[11px] text-slate-400">Title (English - Short & Crisp)</label>
                     <input 
                       required 
                       type="text" 
-                      placeholder="English Title..." 
+                      placeholder="e.g. Durga Puja preparations..." 
                       value={newTitleEn} 
                       onChange={e => setNewTitleEn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
@@ -1067,22 +1092,22 @@ export default function ElakarKhoborHome() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] text-slate-400">বিস্তারিত (বাংলা)</label>
+                    <label className="text-[11px] text-slate-400">বিস্তারিত সংবাদ (বাংলা)</label>
                     <textarea 
                       required 
                       rows={3} 
-                      placeholder="বাংলা খবর..." 
+                      placeholder="বাংলা পূর্ণ খবর..." 
                       value={newSummaryBn} 
                       onChange={e => setNewSummaryBn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400">Details (English)</label>
+                    <label className="text-[11px] text-slate-400">Detailed News (English)</label>
                     <textarea 
                       required 
                       rows={3} 
-                      placeholder="English News..." 
+                      placeholder="Full English news story..." 
                       value={newSummaryEn} 
                       onChange={e => setNewSummaryEn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
@@ -1166,7 +1191,7 @@ export default function ElakarKhoborHome() {
                     <textarea 
                       required 
                       rows={2} 
-                      placeholder="সাধারণ পাঠকদের জন্য সংক্ষিপ্ত ইঙ্গিত..." 
+                      placeholder="সংক্ষিপ্ত ইঙ্গিত..." 
                       value={newSecretSummaryBn} 
                       onChange={e => setNewSecretSummaryBn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
@@ -1265,7 +1290,7 @@ export default function ElakarKhoborHome() {
             <div className="flex gap-2 border-b border-white/10 pb-3 mb-4 text-xs font-bold overflow-x-auto">
               <button onClick={() => setPolicyTab('about')} className={policyTab === 'about' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'আমাদের সম্পর্কে' : 'About Us'}</button>
               <button onClick={() => setPolicyTab('editorial')} className={policyTab === 'editorial' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'সম্পাদকীয় নীতি' : 'Editorial Policy'}</button>
-              <button onClick={() => setPolicyTab('privacy')} className={policyTab === 'privacy' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'গোপনীয়তা' : 'Privacy'}</button>
+              <button onClick={() => setPolicyTab('privacy')} className={policyTab === 'privacy' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'গোপনীয়তা' : 'Privacy Policy'}</button>
               <button onClick={() => setPolicyTab('contact')} className={policyTab === 'contact' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'যোগাযোগ' : 'Contact Us'}</button>
             </div>
             <div className="text-xs text-slate-300 leading-relaxed">
