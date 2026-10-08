@@ -34,9 +34,9 @@ export async function POST(req: Request) {
     }
 
     const newArticle = {
-      category,
-      tag_bn,
-      tag_en,
+      category: category || 'poschim-para',
+      tag_bn: tag_bn || 'সাধারণ',
+      tag_en: tag_en || 'General',
       title_bn,
       title_en,
       summary_bn,
