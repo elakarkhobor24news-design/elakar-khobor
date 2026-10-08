@@ -267,8 +267,8 @@ export default function ElakarKhoborHome() {
       titleEn: 'Confidential probe into illegal canal encroachment in Poschim Para',
       summaryBn: 'রাতের আঁধারে সরকারি খালের সংযোগমুখে মাটি ফেলে বন্ধ করার অভিযোগ।',
       summaryEn: 'Leaked records reveal unauthorized land filling over public canal boundary.',
-      cipherBn: CryptoJS.AES.encrypt('খালের সরকারি সিএস নকশা অনুযায়ী ৪০ ফুট প্রশস্ততা বর্তমান অবৈধ দখলের কারণে মাত্র ১৫ ফুটে নেমে এসেছে। অবিলম্বে উচ্ছেদ অভিযান পরিচালনা করার সুপারিশ করা হয়েছে।', '2026').toString(),
-      cipherEn: CryptoJS.AES.encrypt('Official CS survey maps record a 40-foot canal width, now reduced to only 15 feet due to illegal sand encroachment. An urgent administrative clearance drive is recommended.', '2026').toString()
+      cipherBn: 'U2FsdGVkX19P/zYl5jM7kZ4WJb0X1z9nQ=',
+      cipherEn: 'U2FsdGVkX1+v8k2j1mN3bA8xP0qR4sT7u='
     }
   ]);
 
