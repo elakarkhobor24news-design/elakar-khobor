@@ -3,15 +3,17 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const { password } = await req.json();
-    const cleanPass = String(password || '').trim();
+    const inputPass = String(password || '').trim();
 
-    // 1234 othoba 2026 dilei shathe shathe pass korbe
-    if (cleanPass === '1234' || cleanPass === '2026') {
+    // Server env theke nibe, default fallback admin1090
+    const correctSecret = process.env.ADMIN_SECRET_KEY || 'admin1090';
+
+    if (inputPass === correctSecret) {
       return NextResponse.json({ success: true });
     }
 
     return NextResponse.json(
-      { success: false, error: 'Vul password' },
+      { success: false, error: 'Unauthorized' },
       { status: 401 }
     );
   } catch (err: any) {

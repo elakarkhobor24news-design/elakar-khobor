@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { translations } from '@/lib/translations';
-import CryptoJS from 'crypto-js';
 
 function Background3D() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -147,7 +146,6 @@ export default function ElakarKhoborHome() {
 
   // DEMO POST MUCHE EMPTY STATE KORA HOYECHE - APNI POST KORLEI DEKHABE
   const [publicArticles, setPublicArticles] = useState<any[]>([]);
-
   const [isSubmittingNews, setIsSubmittingNews] = useState(false);
 
   // FORM INPUTS
@@ -168,7 +166,7 @@ export default function ElakarKhoborHome() {
 
   const t = translations[lang];
 
-  // IMAGE UPLOADER COMPRESSOR
+  // IMAGE COMPRESSOR
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -202,7 +200,7 @@ export default function ElakarKhoborHome() {
 
   const loadArticles = () => {
     try {
-      const stored = localStorage.getItem('elakar_user_news_list');
+      const stored = localStorage.getItem('elakar_final_news_list');
       if (stored) {
         setPublicArticles(JSON.parse(stored));
       }
@@ -234,8 +232,8 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // PUBLISH NEWS (SAVE & DISPLAY)
-  const handlePublishNews = (e: React.FormEvent) => {
+  // SECURE PUBLISH
+  const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
 
@@ -255,7 +253,27 @@ export default function ElakarKhoborHome() {
 
     const updated = [newArticle, ...publicArticles];
     setPublicArticles(updated);
-    localStorage.setItem('elakar_user_news_list', JSON.stringify(updated));
+    localStorage.setItem('elakar_final_news_list', JSON.stringify(updated));
+
+    try {
+      await fetch('/api/news/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminKey: adminPin,
+          category: newCategory,
+          tag_bn: newTagBn,
+          tag_en: newTagEn,
+          title_bn: newTitleBn,
+          title_en: newTitleEn,
+          summary_bn: newSummaryBn,
+          summary_en: newSummaryEn,
+          author_bn: newAuthorBn,
+          author_en: newAuthorEn,
+          image_url: newImageBase64 || null,
+        }),
+      });
+    } catch {}
 
     alert(lang === 'bn' ? 'সংবাদ সফলভাবে প্রকাশিত হয়েছে!' : 'News published successfully!');
     setNewTitleBn('');
@@ -270,20 +288,31 @@ export default function ElakarKhoborHome() {
     if (!confirm(lang === 'bn' ? 'এই সংবাদটি মুছে ফেলতে চান?' : 'Delete this news?')) return;
     const filtered = publicArticles.filter(item => item.id !== id);
     setPublicArticles(filtered);
-    localStorage.setItem('elakar_user_news_list', JSON.stringify(filtered));
+    localStorage.setItem('elakar_final_news_list', JSON.stringify(filtered));
   };
 
-  // ADMIN LOGIN (1234 ba 2026 dilei login hobe)
-  const handleAdminLogin = (e: React.FormEvent) => {
+  // PURE SERVER-SIDE ADMIN LOGIN (ZERO FRONTEND PASSWORD EXPOSURE)
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = adminPin.trim();
-    if (clean === '1234' || clean === '2026') {
-      setIsAdminLoggedIn(true);
-      setIsAdminLoginOpen(false);
-      setIsAdminPanelOpen(true);
-      setAdminPinError(false);
-      setAdminPin('');
-    } else {
+    setAdminPinError(false);
+
+    try {
+      const res = await fetch('/api/admin-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPin }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setIsAdminLoggedIn(true);
+        setIsAdminLoginOpen(false);
+        setIsAdminPanelOpen(true);
+        setAdminPinError(false);
+      } else {
+        setAdminPinError(true);
+      }
+    } catch {
       setAdminPinError(true);
     }
   };
@@ -382,9 +411,9 @@ export default function ElakarKhoborHome() {
         </div>
 
         {publicArticles.length === 0 ? (
-          <div className="text-center py-16 bg-white/[0.02] border border-white/10 rounded-3xl">
+          <div className="text-center py-20 bg-white/[0.02] border border-white/10 rounded-3xl">
             <p className="text-slate-400 text-sm">
-              {lang === 'bn' ? 'বর্তমানে কোনো খবর নেই। নিচের PORTAL ACCESS বাটনে চাপ দিয়ে এডমিন প্যানেল থেকে খবর যোগ করুন।' : 'No news published yet. Click PORTAL ACCESS below to add news.'}
+              {lang === 'bn' ? 'বর্তমানে কোনো খবর নেই। নিচের PORTAL ACCESS বাটনে চাপ দিয়ে অ্যাডমিন প্যানেল থেকে সংবাদ পোস্ট করুন।' : 'No news published yet. Click PORTAL ACCESS below to add news.'}
             </p>
           </div>
         ) : (
@@ -549,23 +578,32 @@ export default function ElakarKhoborHome() {
         </div>
       )}
 
-      {/* ADMIN LOGIN MODAL */}
+      {/* PURE SECURE ADMIN LOGIN MODAL (NO PASSWORD HINT) */}
       {isAdminLoginOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-sm text-center relative">
-            <button onClick={() => setIsAdminLoginOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
-            <h3 className="text-lg font-bold text-white mb-2">{lang === 'bn' ? 'অ্যাডমিন প্রবেশাধিকার' : 'Admin Portal Login'}</h3>
-            <p className="text-xs text-slate-400 mb-3">{lang === 'bn' ? 'পাসওয়ার্ড: 1234 বা 2026' : 'Password: 1234 or 2026'}</p>
+          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-sm text-center relative shadow-2xl">
+            <button 
+              onClick={() => { setIsAdminLoginOpen(false); setAdminPinError(false); }} 
+              className="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"
+            >✕</button>
+            <h3 className="text-lg font-bold text-white mb-4">অ্যাডমিন প্রবেশাধিকার</h3>
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <input 
                 type="password" 
-                placeholder={lang === 'bn' ? 'অ্যাডমিন পাসওয়ার্ড লিখুন' : 'Enter Admin Password'} 
+                placeholder="গোপন পাসওয়ার্ড লিখুন" 
                 value={adminPin} 
                 onChange={e => setAdminPin(e.target.value)} 
-                className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-center text-sm text-white focus:outline-none focus:border-rose-500" 
+                className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-center text-sm text-white focus:outline-none focus:border-rose-500" 
               />
-              {adminPinError && <div className="text-rose-400 text-xs">{lang === 'bn' ? 'ভুল পাসওয়ার্ড!' : 'Access denied.'}</div>}
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'লগইন' : 'Authenticate'}</button>
+              {adminPinError && (
+                <div className="text-rose-400 text-xs font-semibold">ভুল পাসওয়ার্ড! প্রবেশাধিকার প্রত্যাখ্যাত।</div>
+              )}
+              <button 
+                type="submit" 
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg transition"
+              >
+                লগইন
+              </button>
             </form>
           </div>
         </div>

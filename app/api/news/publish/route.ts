@@ -18,18 +18,17 @@ export async function POST(req: Request) {
       image_url,
     } = body;
 
-    // Password validation check
-    const secret = process.env.ADMIN_SECRET_KEY || '1234';
-    if (!adminKey || (adminKey !== secret && adminKey !== '2026')) {
+    const correctSecret = process.env.ADMIN_SECRET_KEY || 'admin1090';
+    if (!adminKey || String(adminKey).trim() !== correctSecret) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized: Admin pin vul hoyeche.' },
+        { success: false, error: 'Unauthorized: Admin password vul.' },
         { status: 401 }
       );
     }
 
     if (!title_bn || !title_en || !summary_bn || !summary_en) {
       return NextResponse.json(
-        { success: false, error: 'Shob ghor puron kora baddhotamulok.' },
+        { success: false, error: 'Shob field puron kora baddhotamulok.' },
         { status: 400 }
       );
     }
@@ -47,7 +46,6 @@ export async function POST(req: Request) {
       image_url: image_url || null,
     };
 
-    // Supabase database-e real save
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -58,14 +56,13 @@ export async function POST(req: Request) {
         .select();
 
       if (error) {
-        console.error('Supabase insert error:', error);
+        console.error('Supabase error:', error);
         throw error;
       }
 
       return NextResponse.json({ success: true, data });
     }
 
-    // Local fallback
     return NextResponse.json({
       success: true,
       data: [{ ...newArticle, id: Date.now() }],
