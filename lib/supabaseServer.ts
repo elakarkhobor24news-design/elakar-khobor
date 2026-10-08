@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
-// এটি কেবল সার্ভারে চলবে এবং RLS বাইপাস করার ক্ষমতা রাখে
+// বিল্ড টাইমে যাতে ক্র্যাশ না করে তার জন্য নিরাপদ ক্লায়েন্ট
 export const supabaseServer = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     persistSession: false,
