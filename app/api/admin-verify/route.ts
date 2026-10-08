@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { password } = await request.json();
-    const serverSecret = process.env.ADMIN_SECRET_KEY;
+    const { password } = await req.json();
+    const cleanPass = String(password || '').trim();
 
-    if (!serverSecret) {
-      return NextResponse.json({ success: false, message: 'Key not configured' }, { status: 500 });
-    }
-
-    if (password === serverSecret) {
+    // 1234 othoba 2026 dilei shathe shathe pass korbe
+    if (cleanPass === '1234' || cleanPass === '2026') {
       return NextResponse.json({ success: true });
-    } else {
-      return NextResponse.json({ success: false }, { status: 401 });
     }
-  } catch {
-    return NextResponse.json({ success: false }, { status: 500 });
+
+    return NextResponse.json(
+      { success: false, error: 'Vul password' },
+      { status: 401 }
+    );
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
   }
 }
