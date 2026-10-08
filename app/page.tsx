@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { translations } from '@/lib/translations';
 import CryptoJS from 'crypto-js';
 
-// --- EXPANSIVE 3D MILKY WAY SPIRAL GALAXY ENGINE ---
 function Background3D() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -52,11 +51,7 @@ function Background3D() {
       const z = (Math.random() - 0.5) * maxVertical;
 
       const isCore = dist < maxRadius * 0.22;
-      const color = isCore 
-        ? '#ffffff'
-        : dist < maxRadius * 0.55 
-        ? '#fb7185' 
-        : '#e11d48';
+      const color = isCore ? '#ffffff' : dist < maxRadius * 0.55 ? '#fb7185' : '#e11d48';
 
       stars.push({
         x: Math.cos(angle) * dist,
@@ -70,14 +65,6 @@ function Background3D() {
         alpha: Math.random() * 0.7 + 0.3
       });
     }
-
-    const cosmicDust = Array.from({ length: 120 }, () => ({
-      x: (Math.random() - 0.5) * w * 1.8,
-      y: (Math.random() - 0.5) * h * 1.8,
-      z: Math.random() * 800 - 400,
-      sz: Math.random() * 1.2 + 0.4,
-      alpha: Math.random() * 0.4 + 0.1
-    }));
 
     let pitch = 1.15;
     let yaw = 0;
@@ -106,16 +93,6 @@ function Background3D() {
       const sinP = Math.sin(pitch);
       const cosY = Math.cos(yaw);
       const sinY = Math.sin(yaw);
-
-      cosmicDust.forEach((dust) => {
-        const sc = fov / (fov + dust.z + 500);
-        const px = dust.x * sc + cx;
-        const py = dust.y * sc + cy;
-        ctx.fillStyle = `rgba(255, 255, 255, ${dust.alpha})`;
-        ctx.beginPath();
-        ctx.arc(px, py, dust.sz * sc, 0, Math.PI * 2);
-        ctx.fill();
-      });
 
       const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius * 0.38);
       coreGrad.addColorStop(0, 'rgba(244, 63, 94, 0.22)');
@@ -207,6 +184,9 @@ export default function ElakarKhoborHome() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [policyTab, setPolicyTab] = useState<'about' | 'editorial' | 'privacy' | 'contact'>('about');
 
+  // SELECTED NEWS MODAL (Detailed Reading on Same Page)
+  const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
+
   const [selectedSecretId, setSelectedSecretId] = useState('');
   const [unlockPin, setUnlockPin] = useState('');
   const [unlockError, setUnlockError] = useState(false);
@@ -218,7 +198,7 @@ export default function ElakarKhoborHome() {
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // PUBLIC ARTICLES STATE (WITH IMAGE SUPPORT)
+  // PUBLIC ARTICLES (Default Initial List)
   const [publicArticles, setPublicArticles] = useState<any[]>([
     {
       id: 1,
@@ -227,8 +207,8 @@ export default function ElakarKhoborHome() {
       tag_en: 'Muktir Dokan',
       title_bn: 'মুক্তির দোকান মোড়ে রাতের আলো নিশ্চিত করতে নতুন সোলার স্ট্রিট লাইট স্থাপন',
       title_en: 'New solar street lights installed at Muktir Dokan crossing',
-      summary_bn: 'বাজারের প্রবেশমুখে ১০টি নতুন আধুনিক সড়ক বাতি চালু করা হয়েছে।',
-      summary_en: 'Ten new high-efficiency solar street lamps turned on at commercial crossing.',
+      summary_bn: 'বাজারের প্রবেশমুখে ১০টি নতুন আধুনিক সড়ক বাতি চালু করা হয়েছে। স্থানীয় জনসাধারণের সুবিধার্থে এই উদ্যোগ নেওয়া হয়।',
+      summary_en: 'Ten new high-efficiency solar street lamps turned on at commercial crossing for local public convenience.',
       author_bn: 'এলাকার খবর ডেস্ক',
       author_en: 'Local Desk',
       image_url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'
@@ -240,8 +220,8 @@ export default function ElakarKhoborHome() {
       tag_en: 'Wapdar Matha',
       title_bn: 'ওয়াপদার মাথা বেড়িবাঁধ সড়কে ভারী যানবাহন চলাচলে নতুন গতিসীমা নির্ধারণ',
       title_en: 'New speed restrictions set on Wapdar Matha embankment corridor',
-      summary_bn: 'নদী তীরের নিরাপত্তা বজায় রাখতে ভারী ট্রাক চলাচল সীমিত করার নির্দেশনা জারি।',
-      summary_en: 'Heavy vehicle transit restricted along riverside embankment to protect local safety.',
+      summary_bn: 'নদী তীরের নিরাপত্তা বজায় রাখতে ভারী ট্রাক চলাচল সীমিত করার নির্দেশনা জারি করেছে কর্তৃপক্ষ।',
+      summary_en: 'Heavy vehicle transit restricted along riverside embankment by authorities to protect local safety.',
       author_bn: 'মাঠ প্রতিবেদক',
       author_en: 'Field Reporter',
       image_url: ''
@@ -253,7 +233,7 @@ export default function ElakarKhoborHome() {
       tag_en: 'Durga Mondir',
       title_bn: 'দুর্গা মন্দির প্রাঙ্গণে বার্ষিক সম্প্রীতি সভা ও বিনামূল্যে চিকিৎসা ক্যাম্প সম্পন্ন',
       title_en: 'Annual harmony meeting and free health clinic at Durga Mondir premises',
-      summary_bn: 'সাধারণ মানুষের মাঝে রক্তচাপ ও ডায়াবেটিস পরীক্ষা করে ওষুধ বিতরণ করা হয়েছে।',
+      summary_bn: 'সাধারণ মানুষের মাঝে রক্তচাপ ও ডায়াবেটিস পরীক্ষা করে প্রয়োজনীয় ওষুধ বিনামূল্যে বিতরণ করা হয়েছে।',
       summary_en: 'Free medical screening and vital health medicines distributed to community residents.',
       author_bn: 'বিশেষ প্রতিনিধি',
       author_en: 'Special Reporter',
@@ -261,7 +241,6 @@ export default function ElakarKhoborHome() {
     }
   ]);
 
-  // SECRET ARTICLES STATE (PRERENDER COMPATIBLE STATIC CIPHER STRINGS)
   const [secretArticles, setSecretArticles] = useState<any[]>([
     {
       id: 'sec-01',
@@ -278,7 +257,7 @@ export default function ElakarKhoborHome() {
   const [isSubmittingNews, setIsSubmittingNews] = useState(false);
   const [isSubmittingSecretNews, setIsSubmittingSecretNews] = useState(false);
 
-  // BILINGUAL PUBLIC FORM STATE
+  // FORM INPUTS
   const [newCategory, setNewCategory] = useState('muktir-dokan');
   const [newTagBn, setNewTagBn] = useState('মুক্তির দোকান');
   const [newTagEn, setNewTagEn] = useState('Muktir Dokan');
@@ -290,7 +269,7 @@ export default function ElakarKhoborHome() {
   const [newAuthorEn, setNewAuthorEn] = useState('Staff Reporter');
   const [newImageBase64, setNewImageBase64] = useState('');
 
-  // SECRET VAULT FORM STATE
+  // SECRET VAULT FORM
   const [newSecretCode, setNewSecretCode] = useState('DOC-2026-X10');
   const [newSecretTitleBn, setNewSecretTitleBn] = useState('');
   const [newSecretTitleEn, setNewSecretTitleEn] = useState('');
@@ -313,18 +292,19 @@ export default function ElakarKhoborHome() {
     id: 'lead-01',
     titleBn: 'বারুণা পশ্চিম পাড়ায় নতুন আধুনিক ড্রেনেজ ব্যবস্থার উদ্যোগ',
     titleEn: 'Modern drainage system initiative in Baruna Poschim Para',
-    summaryBn: 'বর্ষায় জলাবদ্ধতা নিরসনে মুক্তির দোকান থেকে ওয়াপদার মাথা পর্যন্ত টেকসই ড্রেন নির্মাণের কাজ দ্রুত শুরু হতে যাচ্ছে।',
-    summaryEn: 'Sustainable drainage construction to be initiated from Muktir Dokan to Wapdar Matha to prevent monsoon waterlogging.',
+    summaryBn: 'বর্ষায় জলাবদ্ধতা নিরসনে মুক্তির দোকান থেকে ওয়াপদার মাথা পর্যন্ত টেকসই ড্রেন নির্মাণের কাজ দ্রুত শুরু হতে যাচ্ছে। স্থানীয় ওয়ার্ড কমিশনার ও গণ্যমান্য ব্যক্তিবর্গ উপস্থিত ছিলেন।',
+    summaryEn: 'Sustainable drainage construction to be initiated from Muktir Dokan to Wapdar Matha to prevent monsoon waterlogging with community leaders.',
     authorBn: 'নিজস্ব প্রতিবেদক',
-    authorEn: 'Staff Reporter'
+    authorEn: 'Staff Reporter',
+    image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1000&q=80'
   };
 
-  // CLIENT FILE PICKER TO BASE64 CONVERTER
+  // IMAGE UPLOADER COMPRESSOR (Ensures fast load & zero bucket setup)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert(lang === 'bn' ? 'ছবির সাইজ সর্বোচ্চ 2MB হতে পারবে।' : 'Max image size is 2MB.');
+      if (file.size > 3 * 1024 * 1024) {
+        alert(lang === 'bn' ? 'ছবির আকার সর্বোচ্চ ৩ মেগাবাইট হতে পারবে।' : 'Max image size is 3MB.');
         return;
       }
       const reader = new FileReader();
@@ -335,20 +315,19 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // FACEBOOK SHARE FUNCTION (ZERO ERROR POPUP)
+  // FACEBOOK INSTANT SHARE FUNCTION
   const handleFacebookShare = (title: string, summary: string) => {
     if (typeof window === 'undefined') return;
     const currentUrl = window.location.origin;
-    const shareText = `${title}\n\n${summary}\n\nবিস্তারিত পড়ুন 'এলাকার খবর'-এ:`;
+    const shareText = `${title}\n\n${summary}\n\nবিস্তারিত পড়ুন 'এলাকার খবর'-এ: ${currentUrl}`;
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}&quote=${encodeURIComponent(shareText)}`;
-    
-    // Popup open without navigation error
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580,toolbar=0,status=0');
   };
 
+  // FETCH ALL ARTICLES FROM SUPABASE FOR EVERY BROWSER / DEVICE
   const fetchPublicArticles = async () => {
     try {
-      const res = await fetch('/api/news/public');
+      const res = await fetch('/api/news/public', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data?.articles && data.articles.length > 0) {
@@ -356,42 +335,12 @@ export default function ElakarKhoborHome() {
         }
       }
     } catch (e) {
-      // Local fallback active
-    }
-  };
-
-  const fetchSecretArticles = async () => {
-    try {
-      const res = await fetch('/api/news/secret-public');
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.articles && data.articles.length > 0) {
-          const formatted = data.articles.map((item: any) => ({
-            id: 'sec-' + item.id,
-            code: item.code,
-            titleBn: item.title_bn,
-            titleEn: item.title_en,
-            summaryBn: item.summary_bn,
-            summaryEn: item.summary_en,
-            cipherBn: item.cipher_bn,
-            cipherEn: item.cipher_en,
-          }));
-          setSecretArticles(formatted);
-        }
-      }
-    } catch (e) {
-      const storedSecrets = localStorage.getItem('elakar_secret_articles');
-      if (storedSecrets) {
-        try {
-          setSecretArticles(JSON.parse(storedSecrets));
-        } catch (err) {}
-      }
+      // Fallback stays
     }
   };
 
   useEffect(() => {
     fetchPublicArticles();
-    fetchSecretArticles();
 
     const updateTime = () => {
       const now = new Date();
@@ -421,7 +370,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // SECURE PUBLISH PUBLIC NEWS (WITH IMAGE & FAILSAFE)
+  // SECURE PUBLISH
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -455,7 +404,7 @@ export default function ElakarKhoborHome() {
           summary_en: newSummaryEn,
           author_bn: newAuthorBn,
           author_en: newAuthorEn,
-          image_url: newImageBase64 || '',
+          image_url: newImageBase64 || null,
         }),
       });
 
@@ -475,6 +424,7 @@ export default function ElakarKhoborHome() {
       setNewSummaryBn('');
       setNewSummaryEn('');
       setNewImageBase64('');
+      fetchPublicArticles();
     } catch (err: any) {
       setPublicArticles(prev => [fallbackArticle, ...prev]);
       alert(lang === 'bn' ? 'সংবাদ প্রকাশিত হয়েছে!' : 'News published successfully!');
@@ -492,7 +442,7 @@ export default function ElakarKhoborHome() {
     if (!confirm(lang === 'bn' ? 'এই সংবাদটি মুছে ফেলতে চান?' : 'Are you sure to delete?')) return;
 
     try {
-      const res = await fetch('/api/news/delete', {
+      const res = await fetch('/api/news/publish/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminKey: adminPin, id }),
@@ -507,146 +457,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // AES ENCRYPT & PUBLISH SECRET REPORT
-  const handlePublishSecretNews = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newSecretCustomPin.trim()) {
-      alert(lang === 'bn' ? 'অনুগ্রহ করে এই গোপন প্রতিবেদনের জন্য একটি আনলক পিন নির্ধারণ করুন!' : 'Please specify an unlocking PIN for this file!');
-      return;
-    }
-
-    setIsSubmittingSecretNews(true);
-
-    const encryptedBn = CryptoJS.AES.encrypt(newSecretTextBn, newSecretCustomPin.trim()).toString();
-    const encryptedEn = CryptoJS.AES.encrypt(newSecretTextEn, newSecretCustomPin.trim()).toString();
-
-    const newDoc = {
-      id: 'sec-' + Date.now(),
-      code: newSecretCode,
-      titleBn: newSecretTitleBn,
-      titleEn: newSecretTitleEn,
-      summaryBn: newSecretSummaryBn,
-      summaryEn: newSecretSummaryEn,
-      cipherBn: encryptedBn,
-      cipherEn: encryptedEn,
-    };
-
-    try {
-      const res = await fetch('/api/news/secret-publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminKey: adminPin,
-          code: newSecretCode,
-          title_bn: newSecretTitleBn,
-          title_en: newSecretTitleEn,
-          summary_bn: newSecretSummaryBn,
-          summary_en: newSecretSummaryEn,
-          cipher_bn: encryptedBn,
-          cipher_en: encryptedEn,
-        }),
-      });
-
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error);
-        if (result.data?.[0]?.id) {
-          newDoc.id = 'sec-' + result.data[0].id;
-        }
-      }
-    } catch (err) {
-      // Local fallback active
-    }
-
-    setSecretArticles(prev => [newDoc, ...prev]);
-    localStorage.setItem('elakar_secret_articles', JSON.stringify([newDoc, ...secretArticles]));
-
-    alert(lang === 'bn' ? 'গোপন অনুসন্ধানী প্রতিবেদন এনক্রিপ্ট হয়ে ভল্টে সংরক্ষিত হয়েছে!' : 'Secret report encrypted and stored in vault!');
-
-    setNewSecretCode('DOC-2026-X' + Math.floor(Math.random() * 90 + 10));
-    setNewSecretTitleBn('');
-    setNewSecretTitleEn('');
-    setNewSecretSummaryBn('');
-    setNewSecretSummaryEn('');
-    setNewSecretTextBn('');
-    setNewSecretTextEn('');
-    setNewSecretCustomPin('');
-    setIsSubmittingSecretNews(false);
-  };
-
-  const handleUnlockSecret = (e: React.FormEvent) => {
-    e.preventDefault();
-    const doc = secretArticles.find(d => d.id === selectedSecretId);
-    if (!doc) return;
-
-    try {
-      const bytesBn = CryptoJS.AES.decrypt(doc.cipherBn, unlockPin.trim());
-      const decryptedBn = bytesBn.toString(CryptoJS.enc.Utf8);
-
-      const bytesEn = CryptoJS.AES.decrypt(doc.cipherEn, unlockPin.trim());
-      const decryptedEn = bytesEn.toString(CryptoJS.enc.Utf8);
-
-      if (decryptedBn && decryptedEn) {
-        setDecryptedCache(prev => ({
-          ...prev,
-          [doc.id]: { bn: decryptedBn, en: decryptedEn }
-        }));
-
-        if (!approvedSecrets.includes(doc.id)) {
-          const updated = [...approvedSecrets, doc.id];
-          setApprovedSecrets(updated);
-          localStorage.setItem('elakar_approved_secrets', JSON.stringify(updated));
-        }
-
-        setIsUnlockModalOpen(false);
-        setUnlockPin('');
-        setUnlockError(false);
-      } else {
-        setUnlockError(true);
-      }
-    } catch {
-      setUnlockError(true);
-    }
-  };
-
-  const handleClearanceSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newReq = {
-      id: 'req-' + Date.now(),
-      docId: selectedSecretId,
-      name: reqName,
-      reason: reqReason,
-      time: new Date().toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { timeZone: 'Asia/Dhaka' })
-    };
-    const updated = [newReq, ...pendingRequests];
-    setPendingRequests(updated);
-    localStorage.setItem('elakar_pending_requests', JSON.stringify(updated));
-    alert(lang === 'bn' ? 'অনুরোধ পাঠানো হয়েছে! অ্যাডমিন পর্যালোচনা করবেন।' : 'Clearance request submitted. Awaiting administrator review.');
-    setIsRequestModalOpen(false);
-    setReqName('');
-    setReqReason('');
-  };
-
-  const handleTipSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newTip = {
-      id: 'tip-' + Date.now(),
-      author: tipAuthor || (lang === 'bn' ? 'বেনামী নাগরিক' : 'Anonymous Citizen'),
-      landmark: tipLandmark,
-      content: tipContent,
-      time: new Date().toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')
-    };
-    const updated = [newTip, ...citizenTips];
-    setCitizenTips(updated);
-    localStorage.setItem('elakar_tips', JSON.stringify(updated));
-    alert(lang === 'bn' ? 'তথ্য সফলভাবে সংরক্ষিত হয়েছে!' : 'Citizen news tip submitted successfully!');
-    setIsTipModalOpen(false);
-    setTipAuthor('');
-    setTipContent('');
-  };
-
+  // ADMIN LOGIN
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminPinError(false);
@@ -677,15 +488,23 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  const approveSecret = (docId: string, reqId: string) => {
-    if (!approvedSecrets.includes(docId)) {
-      const upDocs = [...approvedSecrets, docId];
-      setApprovedSecrets(upDocs);
-      localStorage.setItem('elakar_approved_secrets', JSON.stringify(upDocs));
-    }
-    const upReqs = pendingRequests.filter(r => r.id !== reqId);
-    setPendingRequests(upReqs);
-    localStorage.setItem('elakar_pending_requests', JSON.stringify(upReqs));
+  // TIP SUBMISSION
+  const handleTipSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newTip = {
+      id: 'tip-' + Date.now(),
+      author: tipAuthor || (lang === 'bn' ? 'বেনামী নাগরিক' : 'Anonymous Citizen'),
+      landmark: tipLandmark,
+      content: tipContent,
+      time: new Date().toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')
+    };
+    const updated = [newTip, ...citizenTips];
+    setCitizenTips(updated);
+    localStorage.setItem('elakar_tips', JSON.stringify(updated));
+    alert(lang === 'bn' ? 'তথ্য সফলভাবে সংরক্ষিত হয়েছে!' : 'Citizen news tip submitted successfully!');
+    setIsTipModalOpen(false);
+    setTipAuthor('');
+    setTipContent('');
   };
 
   return (
@@ -775,6 +594,11 @@ export default function ElakarKhoborHome() {
           <h1 className="text-4xl sm:text-7xl font-black text-rose-500 tracking-tight mb-4 drop-shadow-lg">{t.brand}</h1>
 
           <div className="w-full bg-white/[0.03] backdrop-blur-[2px] rounded-3xl p-6 sm:p-10 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300">
+            {leadNews.image_url && (
+              <div className="w-full h-56 sm:h-80 mb-6 rounded-2xl overflow-hidden border border-white/10">
+                <img src={leadNews.image_url} alt="Lead cover" className="w-full h-full object-cover" />
+              </div>
+            )}
             <span className="px-2.5 py-1 rounded-md text-[11px] font-black uppercase bg-rose-600 text-white mb-3 inline-block shadow-md shadow-rose-900/40">{t.leadTag}</span>
             <h2 className="text-xl sm:text-3xl font-extrabold text-white mb-3 leading-snug">{lang === 'bn' ? leadNews.titleBn : leadNews.titleEn}</h2>
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-light">{lang === 'bn' ? leadNews.summaryBn : leadNews.summaryEn}</p>
@@ -790,7 +614,22 @@ export default function ElakarKhoborHome() {
                   </svg>
                   {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share'}
                 </button>
-                <button className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600/90 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 transition">{t.leadReadMore}</button>
+                <button 
+                  onClick={() => setSelectedArticle({
+                    title_bn: leadNews.titleBn,
+                    title_en: leadNews.titleEn,
+                    summary_bn: leadNews.summaryBn,
+                    summary_en: leadNews.summaryEn,
+                    author_bn: leadNews.authorBn,
+                    author_en: leadNews.authorEn,
+                    tag_bn: 'বিশেষ খবর',
+                    tag_en: 'Special Report',
+                    image_url: leadNews.image_url
+                  })}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600/90 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 transition"
+                >
+                  {t.leadReadMore}
+                </button>
               </div>
             </div>
           </div>
@@ -828,7 +667,10 @@ export default function ElakarKhoborHome() {
               >
                 <div>
                   {item.image_url && (
-                    <div className="w-full h-44 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950">
+                    <div 
+                      onClick={() => setSelectedArticle(item)}
+                      className="w-full h-44 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
+                    >
                       <img 
                         src={item.image_url} 
                         alt="News Cover" 
@@ -837,87 +679,102 @@ export default function ElakarKhoborHome() {
                     </div>
                   )}
                   <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-900/80 border border-white/10 text-rose-300">{lang === 'bn' ? item.tag_bn : item.tag_en}</span>
-                  <h3 className="text-base sm:text-lg font-bold text-white mt-3 mb-2">{lang === 'bn' ? item.title_bn : item.title_en}</h3>
-                  <p className="text-xs text-slate-300/80 leading-relaxed mb-4">{lang === 'bn' ? item.summary_bn : item.summary_en}</p>
+                  <h3 
+                    onClick={() => setSelectedArticle(item)}
+                    className="text-base sm:text-lg font-bold text-white mt-3 mb-2 cursor-pointer hover:text-rose-400 transition"
+                  >
+                    {lang === 'bn' ? item.title_bn : item.title_en}
+                  </h3>
+                  <p className="text-xs text-slate-300/80 leading-relaxed mb-4 line-clamp-3">{lang === 'bn' ? item.summary_bn : item.summary_en}</p>
                 </div>
                 
                 <div className="pt-3 border-t border-white/5 space-y-3">
                   <div className="flex justify-between items-center text-xs text-slate-400">
                     <span>{lang === 'bn' ? item.author_bn : item.author_en}</span>
-                    {isAdminLoggedIn && (
-                      <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px]">
-                        ✕ {lang === 'bn' ? 'মুছুন' : 'Delete'}
+                    <div className="flex items-center gap-2">
+                      {isAdminLoggedIn && (
+                        <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px]">
+                          ✕ {lang === 'bn' ? 'মুছুন' : 'Delete'}
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => setSelectedArticle(item)}
+                        className="text-rose-400 hover:text-rose-300 font-bold"
+                      >
+                        {lang === 'bn' ? 'বিস্তারিত →' : 'Read details →'}
                       </button>
-                    )}
+                    </div>
                   </div>
                   
                   {/* FACEBOOK DIRECT SHARE BUTTON */}
-                  <div className="flex items-center justify-between gap-2">
-                    <button 
-                      onClick={() => handleFacebookShare(lang === 'bn' ? item.title_bn : item.title_en, lang === 'bn' ? item.summary_bn : item.summary_en)}
-                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm"
-                    >
-                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                      </svg>
-                      {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share on Facebook'}
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => handleFacebookShare(lang === 'bn' ? item.title_bn : item.title_en, lang === 'bn' ? item.summary_bn : item.summary_en)}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm"
+                  >
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    {lang === 'bn' ? 'ফেসবুকে শেয়ার' : 'Share on Facebook'}
+                  </button>
                 </div>
               </div>
             ))}
         </div>
       </section>
 
-      {/* SECRET NEWS (AES ENCRYPTED VAULT) */}
-      <section id="secret-news-section" className="relative z-10 max-w-7xl mx-auto px-4 py-16 border-t border-white/10">
-        <div className="bg-white/[0.03] backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl border border-rose-500/30 mb-8 flex justify-between items-center">
-          <div>
-            <span className="px-2 py-0.5 text-[10px] font-black uppercase bg-rose-600 text-white rounded shadow">{t.secretBadge}</span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">{t.secretTitle}</h2>
-          </div>
-          <div>
-            <div className="text-xs text-slate-400">{t.secretClearance}</div>
-            <div className="text-sm font-bold text-amber-400">{t.secretClearanceVal}</div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {secretArticles.map(doc => {
-            const isUnlocked = approvedSecrets.includes(doc.id) || isAdminLoggedIn;
-            const clearData = decryptedCache[doc.id];
+      {/* FULL ARTICLE POPUP READER (NO 404 BROKEN PAGES) */}
+      {selectedArticle && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900/95 border border-rose-500/40 p-6 sm:p-8 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4 relative shadow-2xl">
+            <button 
+              onClick={() => setSelectedArticle(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white text-xl p-2"
+            >✕</button>
 
-            return (
-              <div
-                key={doc.id}
-                className="bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-6 border border-rose-500/30 flex flex-col justify-between"
-              >
-                <div>
-                  <span className="text-xs font-mono text-rose-400">{doc.code}</span>
-                  <h3 className="text-lg font-bold text-rose-200 mt-2 mb-3">{lang === 'bn' ? doc.titleBn : doc.titleEn}</h3>
-                  {isUnlocked && clearData ? (
-                    <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-mono leading-relaxed">
-                      {lang === 'bn' ? clearData.bn : clearData.en}
-                    </div>
-                  ) : (
-                    <div className="relative p-4 rounded-xl bg-slate-950/60 border border-white/5 overflow-hidden">
-                      <p className="text-xs text-slate-500 filter blur-[4px]">{lang === 'bn' ? doc.summaryBn : doc.summaryEn}</p>
-                      <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-rose-300 bg-black/40">
-                        🔒 {lang === 'bn' ? 'অনুমতি আবশ্যক (PIN Required)' : 'Authorization Required'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {!isUnlocked && (
-                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-rose-500/20">
-                    <button onClick={() => { setSelectedSecretId(doc.id); setIsUnlockModalOpen(true); }} className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-900/30">{t.unlockBtn}</button>
-                    <button onClick={() => { setSelectedSecretId(doc.id); setIsRequestModalOpen(true); }} className="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-rose-200 border border-rose-500/30 text-xs font-bold transition">{t.requestBtn}</button>
-                  </div>
-                )}
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-600/20 text-rose-300 border border-rose-500/30">
+              {lang === 'bn' ? selectedArticle.tag_bn : selectedArticle.tag_en}
+            </span>
+
+            <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
+              {lang === 'bn' ? selectedArticle.title_bn : selectedArticle.title_en}
+            </h2>
+
+            <div className="flex items-center gap-3 text-xs text-slate-400 border-b border-white/10 pb-3">
+              <span>✍️ {lang === 'bn' ? selectedArticle.author_bn : selectedArticle.author_en}</span>
+              <span>•</span>
+              <span>{lang === 'bn' ? 'বারুণা পশ্চিম পাড়া ডেস্ক' : 'Baruna News Desk'}</span>
+            </div>
+
+            {selectedArticle.image_url && (
+              <div className="w-full h-64 sm:h-80 rounded-2xl overflow-hidden border border-white/10 bg-slate-950">
+                <img src={selectedArticle.image_url} alt="Cover" className="w-full h-full object-cover" />
               </div>
-            );
-          })}
+            )}
+
+            <div className="text-sm sm:text-base text-slate-200 leading-relaxed font-light whitespace-pre-line py-2">
+              {lang === 'bn' ? selectedArticle.summary_bn : selectedArticle.summary_en}
+            </div>
+
+            <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+              <button 
+                onClick={() => handleFacebookShare(lang === 'bn' ? selectedArticle.title_bn : selectedArticle.title_en, lang === 'bn' ? selectedArticle.summary_bn : selectedArticle.summary_en)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1877F2] text-white text-xs font-bold transition shadow-lg hover:bg-blue-600"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                {lang === 'bn' ? 'ফেসবুকে শেয়ার করুন' : 'Share on Facebook'}
+              </button>
+              <button 
+                onClick={() => setSelectedArticle(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
+              >
+                {lang === 'bn' ? 'বন্ধ করুন' : 'Close'}
+              </button>
+            </div>
+          </div>
         </div>
-      </section>
+      )}
 
       {/* FOOTER */}
       <footer className="relative z-10 border-t border-white/10 bg-[#04060c]/80 backdrop-blur py-8 px-4 mt-20">
@@ -1129,161 +986,6 @@ export default function ElakarKhoborHome() {
                 </button>
               </form>
             </div>
-
-            {/* ২. নতুন গোপন অনুসন্ধানী সংবাদ পোস্ট ফর্ম (AES Encrypted) */}
-            <div className="bg-slate-950/80 p-5 rounded-2xl border border-amber-500/30">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-amber-400">
-                  {lang === 'bn' ? '২. নতুন গোপন অনুসন্ধানী প্রতিবেদন যোগ করুন (লকড ভল্ট)' : '2. Add Confidential News Report (Restricted Vault)'}
-                </h4>
-                <span className="text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded font-mono">
-                  AES-256 ENCRYPTED
-                </span>
-              </div>
-
-              <form onSubmit={handlePublishSecretNews} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] text-slate-400">ডকুমেন্ট কোড</label>
-                    <input 
-                      type="text" 
-                      value={newSecretCode} 
-                      onChange={e => setNewSecretCode(e.target.value)} 
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-amber-300 font-mono" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-rose-400 font-bold">🔑 এই খবরের গোপন আনলক পিন</label>
-                    <input 
-                      required
-                      type="text" 
-                      placeholder="যেমন: 2026 বা secret123"
-                      value={newSecretCustomPin} 
-                      onChange={e => setNewSecretCustomPin(e.target.value)} 
-                      className="w-full bg-slate-900 border border-rose-500/40 rounded-xl p-2.5 text-xs text-rose-300 font-mono" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] text-slate-400">শিরোনাম (বাংলা)</label>
-                    <input 
-                      required 
-                      type="text" 
-                      placeholder="যেমন: খাল দখল নিয়ে গোপন অনুসন্ধান..." 
-                      value={newSecretTitleBn} 
-                      onChange={e => setNewSecretTitleBn(e.target.value)} 
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-slate-400">Title (English)</label>
-                    <input 
-                      required 
-                      type="text" 
-                      placeholder="e.g. Confidential probe..." 
-                      value={newSecretTitleEn} 
-                      onChange={e => setNewSecretTitleEn(e.target.value)} 
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] text-slate-400">পাবলিক প্রিভিউ সামারি (যা ঝাপসা দেখাবে)</label>
-                    <textarea 
-                      required 
-                      rows={2} 
-                      placeholder="সংক্ষিপ্ত ইঙ্গিত..." 
-                      value={newSecretSummaryBn} 
-                      onChange={e => setNewSecretSummaryBn(e.target.value)} 
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-slate-400">Public Preview Summary (English)</label>
-                    <textarea 
-                      required 
-                      rows={2} 
-                      placeholder="Brief hint before unlocking..." 
-                      value={newSecretSummaryEn} 
-                      onChange={e => setNewSecretSummaryEn(e.target.value)} 
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] text-emerald-400 font-bold">🔒 আসল গোপন তথ্য (আনলক করার পর যা দেখতে পাবে)</label>
-                    <textarea 
-                      required 
-                      rows={3} 
-                      placeholder="পূর্ণ তদন্তমূলক সত্য প্রতিবেদন (বাংলা)..." 
-                      value={newSecretTextBn} 
-                      onChange={e => setNewSecretTextBn(e.target.value)} 
-                      className="w-full bg-slate-900 border border-emerald-500/30 rounded-xl p-2.5 text-xs text-emerald-300 font-mono" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-emerald-400 font-bold">🔒 Confidential Text (English Unlocked)</label>
-                    <textarea 
-                      required 
-                      rows={3} 
-                      placeholder="Full confidential report (English)..." 
-                      value={newSecretTextEn} 
-                      onChange={e => setNewSecretTextEn(e.target.value)} 
-                      className="w-full bg-slate-900 border border-emerald-500/30 rounded-xl p-2.5 text-xs text-emerald-300 font-mono" 
-                    />
-                  </div>
-                </div>
-
-                <button 
-                  type="submit" 
-                  disabled={isSubmittingSecretNews}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-white font-bold text-xs shadow-lg transition"
-                >
-                  {isSubmittingSecretNews ? (lang === 'bn' ? 'সংরক্ষণ করা হচ্ছে...' : 'Saving...') : (lang === 'bn' ? 'গোপন ভল্টে জমা দিন' : 'Commit to Secret Vault')}
-                </button>
-              </form>
-            </div>
-
-            {/* ৩. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা */}
-            <div>
-              <h4 className="text-xs font-bold text-amber-400 mb-2">{lang === 'bn' ? '৩. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা:' : '3. Pending Clearance Requests:'}</h4>
-              <div className="space-y-2">
-                {pendingRequests.length === 0 ? <p className="text-xs text-slate-500">{lang === 'bn' ? 'কোনো অনুরোধ নেই।' : 'No pending requests.'}</p> : pendingRequests.map(r => (
-                  <div key={r.id} className="p-3 bg-slate-950 rounded-xl flex justify-between items-center text-xs">
-                    <div>
-                      <div className="font-bold text-white">{r.name} ({r.reason})</div>
-                      <div className="text-rose-400 text-[10px]">{r.docId} - {r.time}</div>
-                    </div>
-                    <button onClick={() => approveSecret(r.docId, r.id)} className="px-3 py-1 bg-emerald-600 rounded text-white font-bold">
-                      {lang === 'bn' ? 'অনুমোদন দিন' : 'Grant Access'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ৪. পাঠকদের পাঠানো খবরের ইনবক্স */}
-            <div>
-              <h4 className="text-xs font-bold text-rose-400 mb-2">{lang === 'bn' ? '৪. পাঠকদের পাঠানো খবরের ইনবক্স:' : '4. Citizen Tips Inbox:'}</h4>
-              <div className="space-y-2">
-                {citizenTips.length === 0 ? <p className="text-xs text-slate-500">{lang === 'bn' ? 'কোনো খবর জমা নেই।' : 'No tips received.'}</p> : citizenTips.map(t => (
-                  <div key={t.id} className="p-3 bg-slate-950 rounded-xl text-xs space-y-1 border border-white/5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-white">{t.author} ({t.landmark})</span>
-                      <span className="text-[10px] text-slate-500">{t.time}</span>
-                    </div>
-                    <p className="text-slate-300">{t.content}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </div>
         </div>
       )}
@@ -1317,22 +1019,6 @@ export default function ElakarKhoborHome() {
         </div>
       )}
 
-      {/* UNLOCK MODAL */}
-      {isUnlockModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-rose-500/40 p-6 rounded-2xl w-full max-w-sm text-center relative">
-            <button onClick={() => setIsUnlockModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
-            <h3 className="text-lg font-bold text-white mb-1">{lang === 'bn' ? 'নথি আনলক করুন' : 'Unlock Document'}</h3>
-            <p className="text-xs text-slate-400 mb-4">{lang === 'bn' ? 'এই প্রতিবেদনের নির্ধারিত গোপন পিন প্রদান করুন' : 'Enter designated security PIN for this file'}</p>
-            <form onSubmit={handleUnlockSecret} className="space-y-4">
-              <input type="password" placeholder="PIN" value={unlockPin} onChange={e => setUnlockPin(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-center text-sm text-white" />
-              {unlockError && <div className="text-rose-400 text-xs">{lang === 'bn' ? 'ভুল পাসওয়ার্ড!' : 'Incorrect PIN!'}</div>}
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'আনলক করুন' : 'Unlock'}</button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* TIP MODAL */}
       {isTipModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1343,21 +1029,6 @@ export default function ElakarKhoborHome() {
               <input type="text" placeholder={lang === 'bn' ? 'আপনার নাম' : 'Your Name'} value={tipAuthor} onChange={e => setTipAuthor(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
               <textarea required rows={4} placeholder={lang === 'bn' ? 'খবরের বিবরণ...' : 'News content...'} value={tipContent} onChange={e => setTipContent(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
               <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'জমা দিন' : 'Submit'}</button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* CLEARANCE REQUEST */}
-      {isRequestModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-sm relative">
-            <button onClick={() => setIsRequestModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
-            <h3 className="text-lg font-bold text-white mb-1">{lang === 'bn' ? 'অনুমতি প্রার্থনা' : 'Request Clearance'}</h3>
-            <form onSubmit={handleClearanceSubmit} className="space-y-4 mt-4">
-              <input required type="text" placeholder={lang === 'bn' ? 'আপনার নাম' : 'Your Name'} value={reqName} onChange={e => setReqName(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
-              <input type="text" placeholder={lang === 'bn' ? 'কারণ' : 'Reason'} value={reqReason} onChange={e => setReqReason(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'অনুরোধ পাঠান' : 'Submit'}</button>
             </form>
           </div>
         </div>
