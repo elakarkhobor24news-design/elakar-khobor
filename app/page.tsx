@@ -207,7 +207,7 @@ export default function ElakarKhoborHome() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [policyTab, setPolicyTab] = useState<'about' | 'editorial' | 'privacy' | 'contact'>('about');
 
-  // Reader Modal
+  // Reader Modal State
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
   // Vault states
@@ -218,12 +218,12 @@ export default function ElakarKhoborHome() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [citizenTips, setCitizenTips] = useState<any[]>([]);
 
-  // Admin login states
+  // Admin states
   const [adminPin, setAdminPin] = useState('');
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // Initial News list with safe fallback
+  // Articles list
   const [publicArticles, setPublicArticles] = useState<any[]>([
     {
       id: 1728424000000,
@@ -287,22 +287,22 @@ export default function ElakarKhoborHome() {
 
   const t = translations[lang];
 
-  // DYNAMIC HERO LEAD (Latest published news automatically shows here)
+  // Dynamic Lead
   const latestLead = publicArticles.length > 0 ? publicArticles[0] : {
-    id: 'default-01',
+    id: 1728424000000,
     category: 'durga-mondir',
-    tag_bn: 'প্রধান সংবাদ',
-    tag_en: 'Breaking News',
-    title_bn: 'বারুণা পশ্চিম পাড়ার সর্বশেষ উন্নয়ন ও সত্য অনুসন্ধানী সংবাদ',
-    title_en: 'Latest verified community reports of Baruna Poschim Para',
-    summary_bn: 'পশ্চিম পাড়ার সকল নিয়মিত সংবাদ, ঘোষণা ও নাগরিক মতামত জানতে ভিজিট করুন।',
-    summary_en: 'Stay updated with ground verified regional information and community notifications.',
-    author_bn: 'এলাকার খবর ডেস্ক',
-    author_en: 'News Desk',
+    tag_bn: 'দুর্গা মন্দির',
+    tag_en: 'Durga Mondir',
+    title_bn: 'বারুণা পশ্চিম পাড়ায় দুর্গাপূজার মহোৎসব প্রস্তুতি',
+    title_en: 'Durga Puja preparations in Baruna Poschim Para',
+    summary_bn: 'শরতের আগমনী বার্তায় মুখরিত পশ্চিম পাড়া। ঐতিহ্যবাহী কাঠের তৈরি মন্দির দর্শনে প্রস্তুতি তুঙ্গে।',
+    summary_en: 'Preparations in full swing for Durga Puja at Baruna Poschim Para.',
+    author_bn: 'মাঠ প্রতিবেদক',
+    author_en: 'Field Reporter',
     image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1000&q=80'
   };
 
-  // Image Upload Handler
+  // Image Upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -330,10 +330,10 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Dedicated Facebook Share per Post URL
+  // Facebook Share
   const handleFacebookShare = (articleId: string | number) => {
     if (typeof window === 'undefined') return;
-    const postUrl = `${window.location.origin}/news/${articleId}`;
+    const postUrl = `${window.location.origin}/?article=${articleId}`;
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
@@ -356,7 +356,6 @@ export default function ElakarKhoborHome() {
       }
     } catch {}
 
-    // Fetch from Supabase via public API
     fetch('/api/news/public', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
@@ -453,7 +452,7 @@ export default function ElakarKhoborHome() {
     setIsSubmittingNews(false);
   };
 
-  // Publish Secret Vault News
+  // Publish Secret News
   const handlePublishSecretNews = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSecretCustomPin.trim()) {
@@ -488,7 +487,6 @@ export default function ElakarKhoborHome() {
     setNewSecretCustomPin('');
   };
 
-  // Delete
   const handleDeleteNews = (id: number) => {
     if (!confirm(lang === 'bn' ? 'এই সংবাদটি মুছে ফেলতে চান?' : 'Delete this news?')) return;
     const filtered = publicArticles.filter(item => item.id !== id);
@@ -496,7 +494,6 @@ export default function ElakarKhoborHome() {
     localStorage.setItem('elakar_final_clean_news', JSON.stringify(filtered));
   };
 
-  // Unlock Secret Vault
   const handleUnlockSecret = (e: React.FormEvent) => {
     e.preventDefault();
     const doc = secretArticles.find(d => d.id === selectedSecretId);
@@ -514,7 +511,6 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Clearance Submit
   const handleClearanceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newReq = {
@@ -544,7 +540,6 @@ export default function ElakarKhoborHome() {
     localStorage.setItem('elakar_pending_requests', JSON.stringify(upReqs));
   };
 
-  // Citizen Tip Submit
   const handleTipSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newTip = {
@@ -563,7 +558,6 @@ export default function ElakarKhoborHome() {
     setTipContent('');
   };
 
-  // Admin Login
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminPinError(false);
@@ -688,11 +682,14 @@ export default function ElakarKhoborHome() {
 
           <div className="w-full bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-white/15 shadow-xl hover:border-rose-500/40 transition duration-300">
             {latestLead.image_url && (
-              <div className="w-full h-48 sm:h-64 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950">
+              <div 
+                onClick={() => setSelectedArticle(latestLead)}
+                className="w-full h-48 sm:h-64 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
+              >
                 <img 
                   src={latestLead.image_url} 
                   alt="Lead cover" 
-                  className="w-full h-full object-cover object-center" 
+                  className="w-full h-full object-cover object-center hover:scale-105 transition duration-500" 
                 />
               </div>
             )}
@@ -702,7 +699,10 @@ export default function ElakarKhoborHome() {
             </span>
 
             {/* STRICT 2-LINE TITLE */}
-            <h2 className="text-lg sm:text-2xl font-bold text-white mb-2 leading-snug line-clamp-2">
+            <h2 
+              onClick={() => setSelectedArticle(latestLead)}
+              className="text-lg sm:text-2xl font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
+            >
               {lang === 'bn' 
                 ? (latestLead.title_bn || 'বারুণা পশ্চিম পাড়ায় দুর্গাপূজার মহোৎসব প্রস্তুতি') 
                 : (latestLead.title_en || latestLead.title_bn)}
@@ -731,7 +731,7 @@ export default function ElakarKhoborHome() {
                 </button>
                 <button 
                   onClick={() => setSelectedArticle(latestLead)}
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow"
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
                 >
                   {t.leadReadMore}
                 </button>
@@ -827,7 +827,7 @@ export default function ElakarKhoborHome() {
                           )}
                           <button 
                             onClick={() => setSelectedArticle(item)}
-                            className="text-rose-400 hover:text-rose-300 font-bold"
+                            className="text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
                           >
                             {lang === 'bn' ? 'বিস্তারিত →' : 'Read details →'}
                           </button>
@@ -837,7 +837,7 @@ export default function ElakarKhoborHome() {
                       {/* DEDICATED ARTICLE SHARE BUTTON */}
                       <button 
                         onClick={() => handleFacebookShare(item.id)}
-                        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm"
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm cursor-pointer"
                       >
                         <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                           <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -891,8 +891,8 @@ export default function ElakarKhoborHome() {
                 </div>
                 {!isUnlocked && (
                   <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-rose-500/20">
-                    <button onClick={() => { setSelectedSecretId(doc.id); setIsUnlockModalOpen(true); }} className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-900/30">{t.unlockBtn}</button>
-                    <button onClick={() => { setSelectedSecretId(doc.id); setIsRequestModalOpen(true); }} className="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-rose-200 border border-rose-500/30 text-xs font-bold transition">{t.requestBtn}</button>
+                    <button onClick={() => { setSelectedSecretId(doc.id); setIsUnlockModalOpen(true); }} className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-lg shadow-rose-900/30 cursor-pointer">{t.unlockBtn}</button>
+                    <button onClick={() => { setSelectedSecretId(doc.id); setIsRequestModalOpen(true); }} className="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-rose-200 border border-rose-500/30 text-xs font-bold transition cursor-pointer">{t.requestBtn}</button>
                   </div>
                 )}
               </div>
@@ -901,52 +901,78 @@ export default function ElakarKhoborHome() {
         </div>
       </section>
 
-      {/* FULL ARTICLE POPUP READER */}
+      {/* FULL ARTICLE POPUP READER - FOREGROUND GUARANTEED Z-[100] */}
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900/95 border border-rose-500/40 p-6 sm:p-8 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4 relative shadow-2xl">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+          onClick={() => setSelectedArticle(null)}
+        >
+          <div 
+            className="bg-slate-900 border border-rose-500/50 p-6 sm:p-8 rounded-3xl w-full max-w-2xl max-h-[88vh] overflow-y-auto space-y-5 relative shadow-2xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
             <button 
               onClick={() => setSelectedArticle(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white text-xl p-2"
-            >✕</button>
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold transition shadow cursor-pointer"
+            >
+              ✕
+            </button>
 
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-600/20 text-rose-300 border border-rose-500/30">
-              {lang === 'bn' ? (selectedArticle.tag_bn || 'সংবাদ') : (selectedArticle.tag_en || 'News')}
-            </span>
+            {/* Tag */}
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-md text-xs font-bold uppercase bg-rose-600 text-white shadow">
+                {lang === 'bn' ? (selectedArticle.tag_bn || 'সংবাদ') : (selectedArticle.tag_en || 'News')}
+              </span>
+            </div>
 
-            <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
-              {lang === 'bn' ? (selectedArticle.title_bn || selectedArticle.title_en) : (selectedArticle.title_en || selectedArticle.title_bn)}
+            {/* Title */}
+            <h2 className="text-xl sm:text-2xl font-bold text-white leading-snug">
+              {lang === 'bn' 
+                ? (selectedArticle.title_bn || selectedArticle.title_en) 
+                : (selectedArticle.title_en || selectedArticle.title_bn)}
             </h2>
 
+            {/* Reporter Meta */}
             <div className="flex items-center gap-3 text-xs text-slate-400 border-b border-white/10 pb-3">
               <span>✍️ {lang === 'bn' ? (selectedArticle.author_bn || 'নিজস্ব প্রতিবেদক') : (selectedArticle.author_en || 'Staff Reporter')}</span>
               <span>•</span>
-              <span>{lang === 'bn' ? 'বারুণা পশ্চিম পাড়া' : 'Baruna Poschim Para'}</span>
+              <span className="text-rose-400 font-semibold">{lang === 'bn' ? 'বারুণা পশ্চিম পাড়া' : 'Baruna Poschim Para'}</span>
             </div>
 
+            {/* Image */}
             {selectedArticle.image_url && (
-              <div className="w-full h-64 sm:h-80 rounded-2xl overflow-hidden border border-white/10 bg-slate-950">
-                <img src={selectedArticle.image_url} alt="Cover" className="w-full h-full object-cover" />
+              <div className="w-full h-56 sm:h-72 rounded-2xl overflow-hidden border border-white/10 bg-slate-950">
+                <img 
+                  src={selectedArticle.image_url} 
+                  alt="Full Cover" 
+                  className="w-full h-full object-cover object-center" 
+                />
               </div>
             )}
 
-            <div className="text-sm sm:text-base text-slate-200 leading-relaxed font-light whitespace-pre-line py-2">
-              {lang === 'bn' ? (selectedArticle.summary_bn || selectedArticle.summary_en) : (selectedArticle.summary_en || selectedArticle.summary_bn)}
+            {/* Full News Text */}
+            <div className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-light py-2">
+              {lang === 'bn' 
+                ? (selectedArticle.summary_bn || selectedArticle.summary_en) 
+                : (selectedArticle.summary_en || selectedArticle.summary_bn)}
             </div>
 
-            <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+            {/* Footer Buttons */}
+            <div className="pt-4 border-t border-white/10 flex flex-wrap justify-between items-center gap-3">
               <button 
                 onClick={() => handleFacebookShare(selectedArticle.id)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1877F2] text-white text-xs font-bold transition shadow-lg hover:bg-blue-600"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1877F2] hover:bg-blue-600 text-white text-xs font-bold transition shadow-md cursor-pointer"
               >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
                 {lang === 'bn' ? 'ফেসবুকে শেয়ার করুন' : 'Share on Facebook'}
               </button>
+
               <button 
                 onClick={() => setSelectedArticle(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer"
               >
                 {lang === 'bn' ? 'বন্ধ করুন' : 'Close'}
               </button>
@@ -1156,7 +1182,7 @@ export default function ElakarKhoborHome() {
                 <button 
                   type="submit" 
                   disabled={isSubmittingNews}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-bold text-xs shadow-lg transition"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-bold text-xs shadow-lg transition cursor-pointer"
                 >
                   {isSubmittingNews ? (lang === 'bn' ? 'সংরক্ষণ করা হচ্ছে...' : 'Publishing...') : (lang === 'bn' ? 'ছবিসহ সংবাদ প্রকাশ করুন' : 'Publish News with Photo')}
                 </button>
@@ -1275,7 +1301,7 @@ export default function ElakarKhoborHome() {
 
                 <button 
                   type="submit" 
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-white font-bold text-xs shadow-lg transition"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-white font-bold text-xs shadow-lg transition cursor-pointer"
                 >
                   {lang === 'bn' ? 'গোপন ভল্টে জমা দিন' : 'Commit to Secret Vault'}
                 </button>
@@ -1292,7 +1318,7 @@ export default function ElakarKhoborHome() {
                       <div className="font-bold text-white">{r.name} ({r.reason})</div>
                       <div className="text-rose-400 text-[10px]">{r.docId} - {r.time}</div>
                     </div>
-                    <button onClick={() => approveSecret(r.docId, r.id)} className="px-3 py-1 bg-emerald-600 rounded text-white font-bold">
+                    <button onClick={() => approveSecret(r.docId, r.id)} className="px-3 py-1 bg-emerald-600 rounded text-white font-bold cursor-pointer">
                       {lang === 'bn' ? 'অনুমোদন দিন' : 'Grant Access'}
                     </button>
                   </div>
@@ -1323,8 +1349,8 @@ export default function ElakarKhoborHome() {
       {/* POLICY MODAL */}
       {isPolicyModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-lg relative">
-            <button onClick={() => setIsPolicyModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-lg relative">
+            <button onClick={() => setIsPolicyModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer">✕</button>
             <div className="flex gap-2 border-b border-white/10 pb-3 mb-4 text-xs font-bold overflow-x-auto">
               <button onClick={() => setPolicyTab('about')} className={policyTab === 'about' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'আমাদের সম্পর্কে' : 'About Us'}</button>
               <button onClick={() => setPolicyTab('editorial')} className={policyTab === 'editorial' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'সম্পাদকীয় নীতি' : 'Editorial Policy'}</button>
@@ -1352,13 +1378,13 @@ export default function ElakarKhoborHome() {
       {isUnlockModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-rose-500/40 p-6 rounded-2xl w-full max-w-sm text-center relative">
-            <button onClick={() => setIsUnlockModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <button onClick={() => setIsUnlockModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer">✕</button>
             <h3 className="text-lg font-bold text-white mb-1">{lang === 'bn' ? 'নথি আনলক করুন' : 'Unlock Document'}</h3>
             <p className="text-xs text-slate-400 mb-4">{lang === 'bn' ? 'এই প্রতিবেদনের নির্ধারিত গোপন পিন প্রদান করুন' : 'Enter designated security PIN'}</p>
             <form onSubmit={handleUnlockSecret} className="space-y-4">
               <input type="password" placeholder="PIN" value={unlockPin} onChange={e => setUnlockPin(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-center text-sm text-white" />
               {unlockError && <div className="text-rose-400 text-xs">{lang === 'bn' ? 'ভুল পাসওয়ার্ড!' : 'Incorrect PIN!'}</div>}
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'আনলক করুন' : 'Unlock'}</button>
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs cursor-pointer">{lang === 'bn' ? 'আনলক করুন' : 'Unlock'}</button>
             </form>
           </div>
         </div>
@@ -1368,12 +1394,12 @@ export default function ElakarKhoborHome() {
       {isRequestModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-sm relative">
-            <button onClick={() => setIsRequestModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <button onClick={() => setIsRequestModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer">✕</button>
             <h3 className="text-lg font-bold text-white mb-1">{lang === 'bn' ? 'অনুমতি প্রার্থনা' : 'Request Clearance'}</h3>
             <form onSubmit={handleClearanceSubmit} className="space-y-4 mt-4">
               <input required type="text" placeholder={lang === 'bn' ? 'আপনার নাম' : 'Your Name'} value={reqName} onChange={e => setReqName(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
               <input type="text" placeholder={lang === 'bn' ? 'কারণ' : 'Reason'} value={reqReason} onChange={e => setReqReason(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'অনুরোধ পাঠান' : 'Submit'}</button>
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs cursor-pointer">{lang === 'bn' ? 'অনুরোধ পাঠান' : 'Submit'}</button>
             </form>
           </div>
         </div>
@@ -1383,12 +1409,12 @@ export default function ElakarKhoborHome() {
       {isTipModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-md relative">
-            <button onClick={() => setIsTipModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <button onClick={() => setIsTipModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer">✕</button>
             <h3 className="text-lg font-bold text-white mb-2">{t.navTipBtn}</h3>
             <form onSubmit={handleTipSubmit} className="space-y-4">
               <input type="text" placeholder={lang === 'bn' ? 'আপনার নাম' : 'Your Name'} value={tipAuthor} onChange={e => setTipAuthor(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
               <textarea required rows={4} placeholder={lang === 'bn' ? 'খবরের বিবরণ...' : 'News content...'} value={tipContent} onChange={e => setTipContent(e.target.value)} className="w-full bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white" />
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">{lang === 'bn' ? 'জমা দিন' : 'Submit'}</button>
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs cursor-pointer">{lang === 'bn' ? 'জমা দিন' : 'Submit'}</button>
             </form>
           </div>
         </div>
