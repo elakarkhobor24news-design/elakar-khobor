@@ -9,6 +9,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error("Secret news fetch error:", error);
       return NextResponse.json({ success: false, secrets: [] }, { status: 200 });
     }
 
@@ -16,7 +17,7 @@ export async function GET() {
       { success: true, secrets: data || [] },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
-  } catch {
+  } catch (err: any) {
     return NextResponse.json({ success: false, secrets: [] }, { status: 200 });
   }
 }
