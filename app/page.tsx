@@ -220,10 +220,11 @@ export default function ElakarKhoborHome() {
 
   // Admin states
   const [adminPin, setAdminPin] = useState('');
+  const [activeSessionKey, setActiveSessionKey] = useState('');
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // News list state (No fake dummy posts, loads real posts directly)
+  // Articles list
   const [publicArticles, setPublicArticles] = useState<any[]>([]);
 
   const [secretArticles, setSecretArticles] = useState<any[]>([
@@ -236,7 +237,7 @@ export default function ElakarKhoborHome() {
       summaryEn: 'Leaked records reveal unauthorized land filling over public canal boundary.',
       secretTextBn: 'খালের সরকারি সিএস নকশা অনুযায়ী ৪০ ফুট প্রশস্ততা বর্তমান অবৈধ দখলের কারণে মাত্র ১৫ ফুটে নেমে এসেছে। অবিলম্বে উচ্ছেদ অভিযান পরিচালনা করার সুপারিশ করা হয়েছে।',
       secretTextEn: 'Official CS survey maps record a 40-foot canal width, now reduced to only 15 feet due to illegal sand encroachment. An urgent administrative clearance drive is recommended.',
-      pin: 'admin1090'
+      pin: 'secure77'
     }
   ]);
 
@@ -312,7 +313,7 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // Robust Multi-Key Article Loader
+  // Multi-Source Article Loader
   const loadArticles = () => {
     let collected: any[] = [];
     try {
@@ -346,7 +347,6 @@ export default function ElakarKhoborHome() {
       }
     } catch {}
 
-    // Also pull from Supabase / server
     fetch('/api/news/public', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
@@ -393,7 +393,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // Publish News
+  // Publish News (Clean dynamic authentication payload)
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -421,7 +421,7 @@ export default function ElakarKhoborHome() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminKey: 'admin1090',
+          adminKey: activeSessionKey,
           category: newCategory,
           tag_bn: newTagBn,
           tag_en: newTagEn,
@@ -492,7 +492,7 @@ export default function ElakarKhoborHome() {
     const doc = secretArticles.find(d => d.id === selectedSecretId);
     if (!doc) return;
 
-    if (unlockPin.trim() === doc.pin || unlockPin.trim() === 'admin1090') {
+    if (unlockPin.trim() === doc.pin || (activeSessionKey && unlockPin.trim() === activeSessionKey)) {
       const updated = [...approvedSecrets, doc.id];
       setApprovedSecrets(updated);
       localStorage.setItem('elakar_approved_secrets', JSON.stringify(updated));
@@ -564,8 +564,9 @@ export default function ElakarKhoborHome() {
       });
       const data = await res.json();
 
-      if (data.success || cleanPass === 'admin1090') {
+      if (data.success) {
         setIsAdminLoggedIn(true);
+        setActiveSessionKey(cleanPass);
         setIsAdminLoginOpen(false);
         setIsAdminPanelOpen(true);
         setAdminPinError(false);
@@ -574,15 +575,7 @@ export default function ElakarKhoborHome() {
         setAdminPinError(true);
       }
     } catch {
-      if (cleanPass === 'admin1090') {
-        setIsAdminLoggedIn(true);
-        setIsAdminLoginOpen(false);
-        setIsAdminPanelOpen(true);
-        setAdminPinError(false);
-        setAdminPin('');
-      } else {
-        setAdminPinError(true);
-      }
+      setAdminPinError(true);
     }
   };
 
@@ -901,7 +894,7 @@ export default function ElakarKhoborHome() {
         </div>
       </section>
 
-      {/* FULL ARTICLE POPUP READER (CLEAN, SCROLLABLE, ROBUST) */}
+      {/* FULL ARTICLE POPUP READER */}
       {selectedArticle && (
         <div 
           className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
@@ -911,7 +904,6 @@ export default function ElakarKhoborHome() {
             className="bg-slate-900 border border-rose-500/50 p-6 sm:p-8 rounded-3xl w-full max-w-2xl max-h-[88vh] overflow-y-auto space-y-5 relative shadow-2xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button 
               onClick={() => setSelectedArticle(null)}
               className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold transition shadow cursor-pointer"
@@ -919,28 +911,24 @@ export default function ElakarKhoborHome() {
               ✕
             </button>
 
-            {/* Tag */}
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-md text-xs font-bold uppercase bg-rose-600 text-white shadow">
                 {lang === 'bn' ? (selectedArticle.tag_bn || 'সংবাদ') : (selectedArticle.tag_en || 'News')}
               </span>
             </div>
 
-            {/* Title */}
             <h2 className="text-xl sm:text-2xl font-bold text-white leading-snug">
               {lang === 'bn' 
                 ? (selectedArticle.title_bn || selectedArticle.title_en) 
                 : (selectedArticle.title_en || selectedArticle.title_bn)}
             </h2>
 
-            {/* Reporter Meta */}
             <div className="flex items-center gap-3 text-xs text-slate-400 border-b border-white/10 pb-3">
               <span>✍️ {lang === 'bn' ? (selectedArticle.author_bn || 'নিজস্ব প্রতিবেদক') : (selectedArticle.author_en || 'Staff Reporter')}</span>
               <span>•</span>
               <span className="text-rose-400 font-semibold">{lang === 'bn' ? 'বারুণা পশ্চিম পাড়া' : 'Baruna Poschim Para'}</span>
             </div>
 
-            {/* Clean Image Rendering (Hides container gracefully if image is unavailable) */}
             {selectedArticle.image_url ? (
               <div className="w-full h-56 sm:h-72 rounded-2xl overflow-hidden border border-white/10 bg-slate-950">
                 <img 
@@ -952,14 +940,12 @@ export default function ElakarKhoborHome() {
               </div>
             ) : null}
 
-            {/* Full News Text (Handles multi-paragraph line breaks properly) */}
             <div className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-light py-2">
               {lang === 'bn' 
                 ? (selectedArticle.summary_bn || selectedArticle.summary_en) 
                 : (selectedArticle.summary_en || selectedArticle.summary_bn)}
             </div>
 
-            {/* Footer Buttons */}
             <div className="pt-4 border-t border-white/10 flex flex-wrap justify-between items-center gap-3">
               <button 
                 onClick={() => handleFacebookShare(selectedArticle.id)}
