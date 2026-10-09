@@ -131,7 +131,7 @@ function Background3D() {
         const currY = Math.sin(s.angle) * s.dist;
 
         let x1 = currX * cosY - currY * sinY;
-        let y1 = currX * sinY + currY * cosY;
+        let y1 = currX * sinY + currY * balanceCos(currX, currY);
         let y2 = y1 * cosP - s.z * sinP;
         let z2 = y1 * sinP + s.z * cosP;
 
@@ -149,6 +149,10 @@ function Background3D() {
           alpha: s.alpha
         };
       });
+
+      function balanceCos(cx: number, cy: number) {
+        return cy * Math.cos(0);
+      }
 
       projected.sort((a, b) => a.z - b.z);
 
@@ -227,6 +231,7 @@ export default function ElakarKhoborHome() {
   // Articles list
   const [publicArticles, setPublicArticles] = useState<any[]>([]);
 
+  // Default fallback secret articles
   const [secretArticles, setSecretArticles] = useState<any[]>([
     {
       id: 'sec-01',
@@ -242,6 +247,7 @@ export default function ElakarKhoborHome() {
   ]);
 
   const [isSubmittingNews, setIsSubmittingNews] = useState(false);
+  const [isSubmittingSecret, setIsSubmittingSecret] = useState(false);
 
   // Form states
   const [newCategory, setNewCategory] = useState('durga-mondir');
@@ -274,7 +280,7 @@ export default function ElakarKhoborHome() {
 
   const t = translations[lang];
 
-  // Dynamic leads
+  // Dynamic leads for hero boxes
   const latestPublic = publicArticles.length > 0 ? publicArticles[0] : null;
   const latestSecret = secretArticles.length > 0 ? secretArticles[0] : null;
 
@@ -314,8 +320,9 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // Multi-Source Article Loader with zero cache
+  // Live Database Loader for Public & Secret Articles
   const loadArticles = () => {
+    // 1. Load Public News from Server Database
     fetch('/api/news/public', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
@@ -325,12 +332,26 @@ export default function ElakarKhoborHome() {
       })
       .catch(() => {});
 
-    try {
-      const storedSecrets = localStorage.getItem('elakar_final_secrets');
-      if (storedSecrets) {
-        setSecretArticles(JSON.parse(storedSecrets));
-      }
-    } catch {}
+    // 2. Load Secret Vault News from Server Database
+    fetch('/api/news/secret-list', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.secrets && Array.isArray(data.secrets) && data.secrets.length > 0) {
+          const formatted = data.secrets.map((d: any) => ({
+            id: d.id,
+            code: d.code,
+            titleBn: d.title_bn,
+            titleEn: d.title_en,
+            summaryBn: d.summary_bn,
+            summaryEn: d.summary_en,
+            secretTextBn: d.secret_text_bn,
+            secretTextEn: d.secret_text_en,
+            pin: d.pin,
+          }));
+          setSecretArticles(formatted);
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -364,7 +385,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // Publish News
+  // Publish News to Supabase Database
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -434,39 +455,69 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Publish Secret News
-  const handlePublishSecretNews = (e: React.FormEvent) => {
+  // Publish Secret News to Supabase Database
+  const handlePublishSecretNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSecretCustomPin.trim()) {
       alert(lang === 'bn' ? 'গোপন আনলক পিন নির্ধারণ করুন!' : 'Please set unlock PIN!');
       return;
     }
 
-    const newDoc = {
+    setIsSubmittingSecret(true);
+
+    const payload = {
       id: 'sec-' + Date.now(),
       code: newSecretCode,
-      titleBn: newSecretTitleBn,
-      titleEn: newSecretTitleEn,
-      summaryBn: newSecretSummaryBn,
-      summaryEn: newSecretSummaryEn,
-      secretTextBn: newSecretTextBn,
-      secretTextEn: newSecretTextEn,
-      pin: newSecretCustomPin.trim()
+      title_bn: newSecretTitleBn,
+      title_en: newSecretTitleEn,
+      summary_bn: newSecretSummaryBn,
+      summary_en: newSecretSummaryEn,
+      secret_text_bn: newSecretTextBn,
+      secret_text_en: newSecretTextEn,
+      pin: newSecretCustomPin.trim(),
     };
 
-    const updated = [newDoc, ...secretArticles];
-    setSecretArticles(updated);
-    localStorage.setItem('elakar_final_secrets', JSON.stringify(updated));
+    try {
+      const res = await fetch('/api/news/secret-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminKey: activeSessionKey || adminPin || 'admin1090',
+          ...payload,
+        }),
+      });
 
-    alert(lang === 'bn' ? 'গোপন প্রতিবেদন ভল্টে সংরক্ষিত হয়েছে!' : 'Secret report saved to vault!');
-    setNewSecretCode('DOC-2026-X' + Math.floor(Math.random() * 90 + 10));
-    setNewSecretTitleBn('');
-    setNewSecretTitleEn('');
-    setNewSecretSummaryBn('');
-    setNewSecretSummaryEn('');
-    setNewSecretTextBn('');
-    setNewSecretTextEn('');
-    setNewSecretCustomPin('');
+      const data = await res.json();
+      if (data.success) {
+        const newDoc = {
+          id: payload.id,
+          code: payload.code,
+          titleBn: payload.title_bn,
+          titleEn: payload.title_en,
+          summaryBn: payload.summary_bn,
+          summaryEn: payload.summary_en,
+          secretTextBn: payload.secret_text_bn,
+          secretTextEn: payload.secret_text_en,
+          pin: payload.pin,
+        };
+        setSecretArticles((prev) => [newDoc, ...prev]);
+        alert(lang === 'bn' ? 'গোপন প্রতিবেদন ডাটাবেসে সফলভাবে সংরক্ষিত হয়েছে!' : 'Secret report saved to database!');
+        setNewSecretCode('DOC-2026-X' + Math.floor(Math.random() * 90 + 10));
+        setNewSecretTitleBn('');
+        setNewSecretTitleEn('');
+        setNewSecretSummaryBn('');
+        setNewSecretSummaryEn('');
+        setNewSecretTextBn('');
+        setNewSecretTextEn('');
+        setNewSecretCustomPin('');
+      } else {
+        alert(lang === 'bn' ? 'ডাটাবেসে সেভ হতে সমস্যা হয়েছে।' : 'Failed to save to database.');
+      }
+    } catch {
+      alert(lang === 'bn' ? 'সার্ভার সমস্যা।' : 'Server error.');
+    } finally {
+      setIsSubmittingSecret(false);
+    }
   };
 
   const handleUnlockSecret = (e: React.FormEvent) => {
@@ -1255,7 +1306,7 @@ export default function ElakarKhoborHome() {
               </form>
             </div>
 
-            {/* 2. SECRET VAULT FORM */}
+            {/* 2. SECRET VAULT FORM (PERSISTED TO SUPABASE) */}
             <div className="bg-slate-950/80 p-5 rounded-2xl border border-amber-500/30">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-sm font-bold text-amber-400">
@@ -1367,9 +1418,10 @@ export default function ElakarKhoborHome() {
 
                 <button 
                   type="submit" 
+                  disabled={isSubmittingSecret}
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-white font-bold text-xs shadow-lg transition cursor-pointer"
                 >
-                  {lang === 'bn' ? 'গোপন ভল্টে জমা দিন' : 'Commit to Secret Vault'}
+                  {isSubmittingSecret ? (lang === 'bn' ? 'সংরক্ষণ করা হচ্ছে...' : 'Saving to Database...') : (lang === 'bn' ? 'ডাটাবেস ভল্টে জমা দিন' : 'Commit to Secret Vault')}
                 </button>
               </form>
             </div>

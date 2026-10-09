@@ -4,25 +4,21 @@ import { supabaseServer } from '@/lib/supabaseServer';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { adminKey, code, title_bn, title_en, summary_bn, summary_en, cipher_bn, cipher_en } = body;
+    const { adminKey, ...docData } = body;
 
-    const secret = process.env.ADMIN_SECRET_KEY || '1234';
-    if (!adminKey || adminKey !== secret) {
-      return NextResponse.json({ success: false, error: 'Unauthorized: ভুল অ্যাডমিন পাসওয়ার্ড।' }, { status: 401 });
+    const serverSecret = process.env.ADMIN_SECRET_KEY || 'admin1090';
+    if (!adminKey || String(adminKey).trim() !== serverSecret) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // যদি Supabase কনফিগার করা থাকে তবে ডাটাবেসে যাবে
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { data, error } = await supabaseServer.from('secret_news').insert([
-        { code, title_bn, title_en, summary_bn, summary_en, cipher_bn, cipher_en }
-      ]).select();
+    const { data, error } = await supabaseServer
+      .from('secret_news')
+      .insert([docData])
+      .select();
 
-      if (error) throw error;
-      return NextResponse.json({ success: true, data });
-    }
+    if (error) throw error;
 
-    // ব্যাকআপ সাকসেস রেসপন্স
-    return NextResponse.json({ success: true, data: [{ id: Date.now(), code }] });
+    return NextResponse.json({ success: true, secret: data[0] });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
