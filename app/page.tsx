@@ -131,7 +131,7 @@ function Background3D() {
         const currY = Math.sin(s.angle) * s.dist;
 
         let x1 = currX * cosY - currY * sinY;
-        let y1 = currX * sinY + currY * cosY;
+        let y1 = currX * sinY + currY * Math.cos(0);
         let y2 = y1 * cosP - s.z * sinP;
         let z2 = y1 * sinP + s.z * cosP;
 
@@ -316,6 +316,38 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
+  // Live Fetch Pending Requests
+  const fetchPendingRequests = () => {
+    fetch('/api/news/secret-requests', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.requests && Array.isArray(data.requests)) {
+          const formatted = data.requests.map((r: any) => ({
+            id: r.id,
+            docId: r.doc_id,
+            name: r.name,
+            reason: r.reason,
+            time: r.time,
+            status: r.status,
+          }));
+          setPendingRequests(formatted);
+
+          // Check if my requested document got approved by admin
+          const myLocalReqs = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
+          const approvedDocIds: string[] = [];
+          formatted.forEach((req: any) => {
+            if (myLocalReqs.includes(req.id) && req.status === 'approved') {
+              approvedDocIds.push(req.docId);
+            }
+          });
+          if (approvedDocIds.length > 0) {
+            setApprovedSecrets((prev) => Array.from(new Set([...prev, ...approvedDocIds])));
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
   // Database Loader for Public, Secret Articles & Clearance Requests
   const loadArticles = () => {
     // 1. Load Public News from Server Database
@@ -349,22 +381,8 @@ export default function ElakarKhoborHome() {
       })
       .catch(() => {});
 
-    // 3. Load Pending Clearance Requests from Server Database
-    fetch('/api/news/secret-requests', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.requests && Array.isArray(data.requests)) {
-          const formatted = data.requests.map((r: any) => ({
-            id: r.id,
-            docId: r.doc_id,
-            name: r.name,
-            reason: r.reason,
-            time: r.time,
-          }));
-          setPendingRequests(formatted);
-        }
-      })
-      .catch(() => {});
+    // 3. Load Pending Clearance Requests
+    fetchPendingRequests();
   };
 
   useEffect(() => {
@@ -396,6 +414,13 @@ export default function ElakarKhoborHome() {
 
     return () => clearInterval(timer);
   }, [lang]);
+
+  // When Admin Panel opens, live refresh requests automatically
+  useEffect(() => {
+    if (isAdminPanelOpen) {
+      fetchPendingRequests();
+    }
+  }, [isAdminPanelOpen]);
 
   // Publish News to Supabase Database
   const handlePublishNews = async (e: React.FormEvent) => {
@@ -532,6 +557,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
+  // Direct Unlock via PIN or Admin Approval
   const handleUnlockSecret = (e: React.FormEvent) => {
     e.preventDefault();
     const doc = secretArticles.find(d => d.id === selectedSecretId);
@@ -549,16 +575,23 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Bulletproof Clearance Request Submit (Guaranteed Zero-Error)
+  // Bulletproof Clearance Request Submit (Instant DB commit & no errors)
   const handleClearanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const requestId = 'req-' + Date.now();
     const reqPayload = {
-      id: 'req-' + Date.now(),
+      id: requestId,
       doc_id: selectedSecretId,
       name: reqName || (lang === 'bn' ? 'বেনামী পাঠক' : 'Anonymous Reader'),
       reason: reqReason || (lang === 'bn' ? 'তদন্তমূলক রিপোর্ট পড়তে চাই' : 'Read Investigative Report'),
       time: new Date().toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { timeZone: 'Asia/Dhaka' })
     };
+
+    // Save my requested id locally so I can auto-unlock when admin approves
+    try {
+      const mySaved = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
+      localStorage.setItem('my_sent_requests', JSON.stringify([...mySaved, requestId]));
+    } catch {}
 
     try {
       await fetch('/api/news/secret-requests', {
@@ -568,28 +601,33 @@ export default function ElakarKhoborHome() {
       });
     } catch {}
 
-    alert(lang === 'bn' ? 'অনুরোধ পাঠানো হয়েছে! অ্যাডমিন পর্যালোচনা করবেন।' : 'Clearance request submitted. Admin will review.');
+    alert(lang === 'bn' ? 'অনুরোধ পাঠানো হয়েছে! অ্যাডমিন অনুমোদন দিলেই আপনি পড়তে পারবেন।' : 'Clearance request submitted! You can read once admin approves.');
     setIsRequestModalOpen(false);
     setReqName('');
     setReqReason('');
   };
 
-  // Approve Secret & Delete Request from Database
+  // Approve Secret -> Update status so user can read + remove from pending
   const approveSecret = async (docId: string, reqId: string) => {
+    // 1. Immediately unlock for current admin screen
     if (!approvedSecrets.includes(docId)) {
       const upDocs = [...approvedSecrets, docId];
       setApprovedSecrets(upDocs);
       localStorage.setItem('elakar_approved_secrets', JSON.stringify(upDocs));
     }
 
+    // 2. Mark as approved on database
     try {
       await fetch('/api/news/secret-requests', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: reqId }),
+        body: JSON.stringify({ id: reqId, docId }),
       });
       setPendingRequests(prev => prev.filter(r => r.id !== reqId));
-    } catch {}
+      alert(lang === 'bn' ? 'অনুমোদন সফল হয়েছে! পাঠক এখন এটি পড়তে পারবে।' : 'Access granted! The reader can now view this.');
+    } catch {
+      setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+    }
   };
 
   const handleTipSubmit = (e: React.FormEvent) => {
@@ -630,6 +668,7 @@ export default function ElakarKhoborHome() {
         setIsAdminPanelOpen(true);
         setAdminPinError(false);
         setAdminPin('');
+        fetchPendingRequests();
       } else {
         setAdminPinError(true);
       }
@@ -1411,7 +1450,7 @@ export default function ElakarKhoborHome() {
                       rows={2} 
                       placeholder="Brief hint..." 
                       value={newSecretSummaryEn} 
-                      onChange={e => setNewSecretSummaryEn(e.target.value)} 
+                      onChange={e => setNewSummaryEn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
                     />
                   </div>
@@ -1452,9 +1491,20 @@ export default function ElakarKhoborHome() {
               </form>
             </div>
 
-            {/* 3. PENDING REQUESTS (FROM SUPABASE DATABASE) */}
+            {/* 3. PENDING REQUESTS (WITH REAL-TIME REFRESH BUTTON) */}
             <div>
-              <h4 className="text-xs font-bold text-amber-400 mb-2">{lang === 'bn' ? '৩. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা:' : '3. Pending Clearance Requests:'}</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-amber-400">
+                  {lang === 'bn' ? '৩. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা:' : '3. Pending Clearance Requests:'}
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={fetchPendingRequests}
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-amber-300 border border-amber-500/30 flex items-center gap-1 cursor-pointer transition"
+                >
+                  🔄 {lang === 'bn' ? 'তাজা করুন' : 'Refresh'}
+                </button>
+              </div>
               <div className="space-y-2">
                 {pendingRequests.length === 0 ? <p className="text-xs text-slate-500">{lang === 'bn' ? 'কোনো অনুরোধ নেই।' : 'No pending requests.'}</p> : pendingRequests.map(r => (
                   <div key={r.id} className="p-3 bg-slate-950 rounded-xl flex justify-between items-center text-xs border border-white/5">

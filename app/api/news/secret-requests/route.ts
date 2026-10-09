@@ -7,8 +7,8 @@ export async function POST(req: Request) {
     const payload = {
       id: body.id || 'req-' + Date.now(),
       doc_id: body.doc_id || body.docId || '',
-      name: body.name || 'বেনামী পাঠক',
-      reason: body.reason || 'তদন্তমূলক রিপোর্ট পড়তে চাই',
+      name: body.name || 'Anonymous',
+      reason: body.reason || 'Want to read',
       time: body.time || new Date().toLocaleTimeString('bn-BD', { timeZone: 'Asia/Dhaka' })
     };
 
@@ -18,13 +18,13 @@ export async function POST(req: Request) {
       .select();
 
     if (error) {
-      console.error('Request DB error:', error);
-      return NextResponse.json({ success: true, request: payload, note: 'fallback' });
+      console.error('Request insert error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 200 });
     }
 
     return NextResponse.json({ success: true, request: data ? data[0] : payload });
   } catch (err: any) {
-    return NextResponse.json({ success: true, note: 'accepted_fallback' });
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
 
@@ -36,28 +36,30 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ success: true, requests: [] });
+      console.error('Request get error:', error);
+      return NextResponse.json({ success: false, requests: [] }, { status: 200 });
     }
 
     return NextResponse.json(
       { success: true, requests: data || [] },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
-  } catch {
-    return NextResponse.json({ success: true, requests: [] });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, requests: [] }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-    await supabaseServer
+    const { error } = await supabaseServer
       .from('secret_requests')
       .delete()
       .eq('id', id);
 
+    if (error) throw error;
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
