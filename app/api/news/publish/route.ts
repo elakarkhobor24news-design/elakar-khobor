@@ -1,72 +1,24 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
-    const {
-      adminKey,
-      category,
-      tag_bn,
-      tag_en,
-      title_bn,
-      title_en,
-      summary_bn,
-      summary_en,
-      author_bn,
-      author_en,
-      image_url,
-    } = body;
+    const body = await request.json();
+    const { adminKey, ...articleData } = body;
+    const serverSecret = process.env.ADMIN_SECRET_KEY;
 
-    const correctSecret = process.env.ADMIN_SECRET_KEY || 'admin1090';
-    if (!adminKey || String(adminKey).trim() !== correctSecret) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized: Admin password vul.' },
-        { status: 401 }
-      );
+    if (!serverSecret || adminKey !== serverSecret) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!title_bn || !title_en || !summary_bn || !summary_en) {
-      return NextResponse.json(
-        { success: false, error: 'Shob field puron kora baddhotamulok.' },
-        { status: 400 }
-      );
-    }
+    const { data, error } = await supabaseServer
+      .from('public_news')
+      .insert([articleData])
+      .select();
 
-    const newArticle = {
-      category: category || 'poschim-para',
-      tag_bn: tag_bn || 'সাধারণ',
-      tag_en: tag_en || 'General',
-      title_bn,
-      title_en,
-      summary_bn,
-      summary_en,
-      author_bn: author_bn || 'নিজস্ব প্রতিবেদক',
-      author_en: author_en || 'Staff Reporter',
-      image_url: image_url || null,
-    };
+    if (error) throw error;
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (url && key && url !== 'https://placeholder.supabase.co') {
-      const { data, error } = await supabaseServer
-        .from('public_news')
-        .insert([newArticle])
-        .select();
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-
-      return NextResponse.json({ success: true, data });
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: [{ ...newArticle, id: Date.now() }],
-    });
+    return NextResponse.json({ success: true, article: data[0] });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
