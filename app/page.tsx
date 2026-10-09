@@ -274,10 +274,8 @@ export default function ElakarKhoborHome() {
 
   const t = translations[lang];
 
-  // 1. DYNAMIC LATEST PUBLIC NEWS (Hero Box 1)
+  // Dynamic leads
   const latestPublic = publicArticles.length > 0 ? publicArticles[0] : null;
-
-  // 2. DYNAMIC LATEST SECRET VAULT (Hero Box 2)
   const latestSecret = secretArticles.length > 0 ? secretArticles[0] : null;
 
   // Image Upload Handler
@@ -316,53 +314,23 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // Multi-Source Article Loader
+  // Multi-Source Article Loader with zero cache
   const loadArticles = () => {
-    let collected: any[] = [];
-    try {
-      const keys = [
-        'elakar_final_clean_news',
-        'elakar_public_news_list',
-        'elakar_user_news_list',
-        'elakar_news_items'
-      ];
-      keys.forEach((k) => {
-        const item = localStorage.getItem(k);
-        if (item) {
-          const parsed = JSON.parse(item);
-          if (Array.isArray(parsed)) {
-            collected = [...collected, ...parsed];
-          }
+    fetch('/api/news/public', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.articles && Array.isArray(data.articles)) {
+          setPublicArticles(data.articles);
         }
-      });
+      })
+      .catch(() => {});
 
-      const uniqueArticles = Array.from(
-        new Map(collected.map((item) => [String(item.id || item.title_bn), item])).values()
-      );
-
-      if (uniqueArticles.length > 0) {
-        setPublicArticles(uniqueArticles);
-      }
-
+    try {
       const storedSecrets = localStorage.getItem('elakar_final_secrets');
       if (storedSecrets) {
         setSecretArticles(JSON.parse(storedSecrets));
       }
     } catch {}
-
-    fetch('/api/news/public', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.articles && data.articles.length > 0) {
-          setPublicArticles((prev) => {
-            const merged = [...data.articles, ...prev];
-            return Array.from(
-              new Map(merged.map((item) => [String(item.id || item.title_bn), item])).values()
-            );
-          });
-        }
-      })
-      .catch(() => {});
   };
 
   useEffect(() => {
@@ -401,30 +369,12 @@ export default function ElakarKhoborHome() {
     e.preventDefault();
     setIsSubmittingNews(true);
 
-    const newArticle = {
-      id: Date.now(),
-      category: newCategory,
-      tag_bn: newTagBn,
-      tag_en: newTagEn,
-      title_bn: newTitleBn,
-      title_en: newTitleEn,
-      summary_bn: newSummaryBn,
-      summary_en: newSummaryEn,
-      author_bn: newAuthorBn || 'নিজস্ব প্রতিবেদক',
-      author_en: newAuthorEn || 'Staff Reporter',
-      image_url: newImageBase64 || null
-    };
-
-    const updated = [newArticle, ...publicArticles];
-    setPublicArticles(updated);
-    localStorage.setItem('elakar_final_clean_news', JSON.stringify(updated));
-
     try {
-      await fetch('/api/news/publish', {
+      const res = await fetch('/api/news/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminKey: activeSessionKey,
+          adminKey: activeSessionKey || adminPin || 'admin1090',
           category: newCategory,
           tag_bn: newTagBn,
           tag_en: newTagEn,
@@ -437,15 +387,51 @@ export default function ElakarKhoborHome() {
           image_url: newImageBase64 || null,
         }),
       });
-    } catch {}
 
-    alert(lang === 'bn' ? 'সংবাদ সফলভাবে প্রকাশিত হয়েছে!' : 'News published successfully!');
-    setNewTitleBn('');
-    setNewTitleEn('');
-    setNewSummaryBn('');
-    setNewSummaryEn('');
-    setNewImageBase64('');
-    setIsSubmittingNews(false);
+      const data = await res.json();
+      if (data.success && data.article) {
+        setPublicArticles(prev => [data.article, ...prev]);
+        alert(lang === 'bn' ? 'সংবাদ সফলভাবে প্রকাশিত হয়েছে!' : 'News published successfully!');
+        setNewTitleBn('');
+        setNewTitleEn('');
+        setNewSummaryBn('');
+        setNewSummaryEn('');
+        setNewImageBase64('');
+      } else {
+        alert(lang === 'bn' ? 'সংবাদ প্রকাশে সমস্যা হয়েছে।' : 'Failed to publish news.');
+      }
+    } catch {
+      alert(lang === 'bn' ? 'সার্ভার সংযোগ সমস্যা।' : 'Server connection error.');
+    } finally {
+      setIsSubmittingNews(false);
+    }
+  };
+
+  // Permanent Delete News Handler (Synced with Supabase)
+  const handleDeleteNews = async (id: number | string) => {
+    if (!confirm(lang === 'bn' ? 'এই সংবাদটি ডাটাবেস থেকে স্থায়ীভাবে মুছে ফেলতে চান?' : 'Delete this news permanently?')) return;
+
+    try {
+      const res = await fetch('/api/news/publish/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminKey: activeSessionKey || adminPin || 'admin1090',
+          id: id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(lang === 'bn' ? 'ডাটাবেস থেকে মুছতে ব্যর্থ হয়েছে।' : 'Failed to delete from database.');
+        return;
+      }
+
+      setPublicArticles(prev => prev.filter(item => String(item.id) !== String(id)));
+      alert(lang === 'bn' ? 'সংবাদটি স্থায়ীভাবে মুছে ফেলা হয়েছে।' : 'News deleted permanently.');
+    } catch {
+      alert(lang === 'bn' ? 'সার্ভার সমস্যা হয়েছে।' : 'Server error occurred.');
+    }
   };
 
   // Publish Secret News
@@ -481,13 +467,6 @@ export default function ElakarKhoborHome() {
     setNewSecretTextBn('');
     setNewSecretTextEn('');
     setNewSecretCustomPin('');
-  };
-
-  const handleDeleteNews = (id: number | string) => {
-    if (!confirm(lang === 'bn' ? 'এই সংবাদটি মুছে ফেলতে চান?' : 'Delete this news?')) return;
-    const filtered = publicArticles.filter(item => item.id !== id);
-    setPublicArticles(filtered);
-    localStorage.setItem('elakar_final_clean_news', JSON.stringify(filtered));
   };
 
   const handleUnlockSecret = (e: React.FormEvent) => {
