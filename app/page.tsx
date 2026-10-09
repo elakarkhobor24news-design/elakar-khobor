@@ -637,7 +637,7 @@ export default function ElakarKhoborHome() {
         )}
       </header>
 
-      {/* CONTINUOUS SMOOTH MOVING BREAKING TICKER (MARQUEE ANIMATION) */}
+      {/* CONTINUOUS SMOOTH MOVING BREAKING TICKER */}
       <div className="relative z-10 border-y border-white/5 bg-slate-950/50 backdrop-blur-sm flex items-center overflow-hidden">
         <div className="bg-rose-600 text-white text-xs font-black px-4 py-2 shrink-0 uppercase tracking-wider flex items-center gap-2 shadow-lg z-20">
           <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
@@ -663,7 +663,7 @@ export default function ElakarKhoborHome() {
         </div>
       </div>
 
-      {/* HERO SECTION: 2 TRANSPARENT BOXES (LATEST PUBLIC & LATEST SECRET VAULT) */}
+      {/* HERO SECTION: BALANCED COMPACT TRANSPARENT BOXES */}
       <section id="hero" className="relative z-10 py-10 px-4">
         <div className="max-w-7xl mx-auto flex flex-col items-start">
           <div className="flex flex-wrap items-center justify-between gap-4 w-full mb-3">
@@ -681,12 +681,12 @@ export default function ElakarKhoborHome() {
             {t.brand}
           </h1>
 
-          {/* TWO SIDE-BY-SIDE TRANSPARENT GLASS BOXES */}
-          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* TWO BALANCED COMPACT TRANSPARENT BOXES */}
+          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             
-            {/* BOX 1: LATEST PUBLIC NEWS (TRANSPARENT GLASS) */}
-            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300 flex flex-col justify-between">
-              <div>
+            {/* BOX 1: LATEST PUBLIC NEWS */}
+            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300 flex flex-col justify-between max-h-[480px]">
+              <div className="overflow-hidden">
                 <div className="flex items-center justify-between mb-3">
                   <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-600 text-white shadow">
                     {lang === 'bn' ? 'সর্বশেষ প্রকাশ্য সংবাদ' : 'Latest Public Story'}
@@ -699,7 +699,7 @@ export default function ElakarKhoborHome() {
                 {latestPublic?.image_url && (
                   <div 
                     onClick={() => setSelectedArticle(latestPublic)}
-                    className="w-full h-44 sm:h-56 mb-3 rounded-xl overflow-hidden border border-white/10 bg-slate-950/60 cursor-pointer"
+                    className="w-full h-40 sm:h-48 mb-3 rounded-xl overflow-hidden border border-white/10 bg-slate-950/60 cursor-pointer shrink-0"
                   >
                     <img 
                       src={latestPublic.image_url} 
@@ -712,22 +712,22 @@ export default function ElakarKhoborHome() {
 
                 <h2 
                   onClick={() => latestPublic && setSelectedArticle(latestPublic)}
-                  className="text-base sm:text-xl font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
+                  className="text-base font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
                 >
                   {latestPublic 
                     ? (lang === 'bn' ? (latestPublic.title_bn || latestPublic.title_en) : (latestPublic.title_en || latestPublic.title_bn))
                     : (lang === 'bn' ? 'বারুণা পশ্চিম পাড়ায় নতুন কোনো প্রকাশ্য সংবাদ নেই।' : 'No public news published yet.')}
                 </h2>
 
-                <p className="text-slate-300 text-xs leading-relaxed mb-4 font-light line-clamp-3">
+                <p className="text-slate-300 text-xs leading-relaxed mb-3 font-light line-clamp-3">
                   {latestPublic 
                     ? (lang === 'bn' ? (latestPublic.summary_bn || latestPublic.summary_en) : (latestPublic.summary_en || latestPublic.summary_bn))
                     : (lang === 'bn' ? 'পোর্টাল অ্যাডমিন ডেস্কে ঢুকে সরাসরি নতুন সংবাদ প্রকাশ করুন।' : 'Login to Admin Desk to post updates.')}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs">
-                <span className="text-slate-400">
+              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs mt-auto">
+                <span className="text-slate-400 truncate max-w-[140px]">
                   {latestPublic ? (lang === 'bn' ? (latestPublic.author_bn || 'নিজস্ব প্রতিবেদক') : (latestPublic.author_en || 'Staff Reporter')) : ''}
                 </span>
                 {latestPublic && (
@@ -752,14 +752,14 @@ export default function ElakarKhoborHome() {
               </div>
             </div>
 
-            {/* BOX 2: LATEST SECRET NEWS VAULT (TRANSPARENT AMBER GLASS) */}
-            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-amber-500/30 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-amber-400/60 transition duration-300 flex flex-col justify-between">
-              <div>
+            {/* BOX 2: LATEST SECRET NEWS VAULT */}
+            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 border border-amber-500/30 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-amber-400/60 transition duration-300 flex flex-col justify-between max-h-[480px]">
+              <div className="overflow-hidden">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                     <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-600/90 text-white shadow font-mono">
-                      {lang === 'bn' ? 'সর্বশেষ গোপন অনুসন্ধান (ভল্ট)' : 'Latest Confidential Vault'}
+                      {lang === 'bn' ? 'গোপন অনুসন্ধান (ভল্ট)' : 'Confidential Vault'}
                     </span>
                   </div>
                   <span className="text-[10px] text-amber-300/80 font-mono">
@@ -768,9 +768,9 @@ export default function ElakarKhoborHome() {
                 </div>
 
                 {/* Secret Locked Card Banner */}
-                <div className="w-full p-4 mb-3 rounded-xl bg-slate-950/60 border border-amber-500/20 flex items-center justify-between">
+                <div className="w-full p-3.5 mb-3 rounded-xl bg-slate-950/60 border border-amber-500/20 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
                       🔒
                     </div>
                     <div>
@@ -778,34 +778,33 @@ export default function ElakarKhoborHome() {
                       <div className="text-[10px] text-slate-400">বারুণা পশ্চিম পাড়া গোপন অনুসন্ধানী নথি</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-950/50 px-2 py-1 rounded border border-amber-500/30">
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-500/30">
                     PIN REQUIRED
                   </span>
                 </div>
 
                 <h2 
                   onClick={() => latestSecret && (!approvedSecrets.includes(latestSecret.id) ? (setSelectedSecretId(latestSecret.id), setIsUnlockModalOpen(true)) : null)}
-                  className="text-base sm:text-xl font-bold text-amber-100 mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-amber-300 transition"
+                  className="text-base font-bold text-amber-100 mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-amber-300 transition"
                 >
                   {latestSecret 
                     ? (lang === 'bn' ? latestSecret.titleBn : latestSecret.titleEn) 
                     : (lang === 'bn' ? 'কোনো গোপন অনুসন্ধানী নথি নেই।' : 'No confidential report in vault.')}
                 </h2>
 
-                {latestSecret && approvedSecrets.includes(latestSecret.id) ? (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-mono leading-relaxed mb-4">
-                    {lang === 'bn' ? latestSecret.secretTextBn : latestSecret.secretTextEn}
-                  </div>
-                ) : (
-                  <p className="text-slate-400 text-xs leading-relaxed mb-4 font-light line-clamp-3 filter blur-[0.4px]">
+                {/* STRICT COMPACT PREVIEW */}
+                <div className="relative">
+                  <p className="text-slate-300 text-xs leading-relaxed mb-3 font-light line-clamp-4">
                     {latestSecret 
-                      ? (lang === 'bn' ? latestSecret.summaryBn : latestSecret.summaryEn) 
+                      ? (approvedSecrets.includes(latestSecret.id) 
+                          ? (lang === 'bn' ? latestSecret.secretTextBn : latestSecret.secretTextEn)
+                          : (lang === 'bn' ? latestSecret.summaryBn : latestSecret.summaryEn))
                       : (lang === 'bn' ? 'প্রশাসনের বিশেষ যাচাইকৃত নথি এই ভল্টে সংরক্ষিত হয়।' : 'Restricted reports protected.')}
                   </p>
-                )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs mt-auto">
                 <span className="text-amber-400/80 font-mono text-[11px]">
                   {latestSecret ? latestSecret.code : ''}
                 </span>
