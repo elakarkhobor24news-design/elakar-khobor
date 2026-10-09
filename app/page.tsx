@@ -223,22 +223,8 @@ export default function ElakarKhoborHome() {
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // Articles list
-  const [publicArticles, setPublicArticles] = useState<any[]>([
-    {
-      id: 1728424000000,
-      category: 'durga-mondir',
-      tag_bn: 'দুর্গা মন্দির',
-      tag_en: 'Durga Mondir',
-      title_bn: 'দুর্গা মন্দির প্রাঙ্গণে শরৎকালীন পূজার মহোৎসব ও কাঠের নান্দনিক মন্দিরে নতুন আয়োজন',
-      title_en: 'With autumn in full swing, Baruna Paschim Para comes alive with Durga Puja preparations',
-      summary_bn: 'শরতের আগমনে ঢাকের বাদ্যে মুখরিত বারুণা পশ্চিম পাড়া। ঐতিহ্যবাহী কাঠের তৈরি নান্দনিক মন্দির ও দৃষ্টিনন্দন প্রতিমা দর্শনে এলাকা জুড়ে বিপুল উৎসাহ-উদ্দীপনা বিরাজ করছে।',
-      summary_en: 'With autumn in full swing and the festive echoes of the dhak around the corner, Baruna Paschim Para has come alive with lively preparations for Durga Puja at the newly crafted wooden temple.',
-      author_bn: 'মাঠ প্রতিবেদক',
-      author_en: 'Field Reporter',
-      image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1000&q=80'
-    }
-  ]);
+  // News list state (No fake dummy posts, loads real posts directly)
+  const [publicArticles, setPublicArticles] = useState<any[]>([]);
 
   const [secretArticles, setSecretArticles] = useState<any[]>([
     {
@@ -288,21 +274,9 @@ export default function ElakarKhoborHome() {
   const t = translations[lang];
 
   // Dynamic Lead
-  const latestLead = publicArticles.length > 0 ? publicArticles[0] : {
-    id: 1728424000000,
-    category: 'durga-mondir',
-    tag_bn: 'দুর্গা মন্দির',
-    tag_en: 'Durga Mondir',
-    title_bn: 'বারুণা পশ্চিম পাড়ায় দুর্গাপূজার মহোৎসব প্রস্তুতি',
-    title_en: 'Durga Puja preparations in Baruna Poschim Para',
-    summary_bn: 'শরতের আগমনী বার্তায় মুখরিত পশ্চিম পাড়া। ঐতিহ্যবাহী কাঠের তৈরি মন্দির দর্শনে প্রস্তুতি তুঙ্গে।',
-    summary_en: 'Preparations in full swing for Durga Puja at Baruna Poschim Para.',
-    author_bn: 'মাঠ প্রতিবেদক',
-    author_en: 'Field Reporter',
-    image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?auto=format&fit=crop&w=1000&q=80'
-  };
+  const latestLead = publicArticles.length > 0 ? publicArticles[0] : null;
 
-  // Image Upload
+  // Image Upload Handler
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -330,7 +304,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Facebook Share
+  // Dedicated Facebook Share
   const handleFacebookShare = (articleId: string | number) => {
     if (typeof window === 'undefined') return;
     const postUrl = `${window.location.origin}/?article=${articleId}`;
@@ -338,31 +312,50 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
+  // Robust Multi-Key Article Loader
   const loadArticles = () => {
+    let collected: any[] = [];
     try {
-      const stored = localStorage.getItem('elakar_final_clean_news') || localStorage.getItem('elakar_public_news_list');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setPublicArticles(prev => {
-            const combined = [...parsed, ...prev];
-            return Array.from(new Map(combined.map(item => [item.id, item])).values());
-          });
+      const keys = [
+        'elakar_final_clean_news',
+        'elakar_public_news_list',
+        'elakar_user_news_list',
+        'elakar_news_items'
+      ];
+      keys.forEach((k) => {
+        const item = localStorage.getItem(k);
+        if (item) {
+          const parsed = JSON.parse(item);
+          if (Array.isArray(parsed)) {
+            collected = [...collected, ...parsed];
+          }
         }
+      });
+
+      const uniqueArticles = Array.from(
+        new Map(collected.map((item) => [String(item.id || item.title_bn), item])).values()
+      );
+
+      if (uniqueArticles.length > 0) {
+        setPublicArticles(uniqueArticles);
       }
+
       const storedSecrets = localStorage.getItem('elakar_final_secrets');
       if (storedSecrets) {
         setSecretArticles(JSON.parse(storedSecrets));
       }
     } catch {}
 
+    // Also pull from Supabase / server
     fetch('/api/news/public', { cache: 'no-store' })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data?.articles && data.articles.length > 0) {
-          setPublicArticles(prev => {
+          setPublicArticles((prev) => {
             const merged = [...data.articles, ...prev];
-            return Array.from(new Map(merged.map(item => [item.id, item])).values());
+            return Array.from(
+              new Map(merged.map((item) => [String(item.id || item.title_bn), item])).values()
+            );
           });
         }
       })
@@ -400,7 +393,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // Publish Public News
+  // Publish News
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -416,7 +409,7 @@ export default function ElakarKhoborHome() {
       summary_en: newSummaryEn,
       author_bn: newAuthorBn || 'নিজস্ব প্রতিবেদক',
       author_en: newAuthorEn || 'Staff Reporter',
-      image_url: newImageBase64 || ''
+      image_url: newImageBase64 || null
     };
 
     const updated = [newArticle, ...publicArticles];
@@ -487,7 +480,7 @@ export default function ElakarKhoborHome() {
     setNewSecretCustomPin('');
   };
 
-  const handleDeleteNews = (id: number) => {
+  const handleDeleteNews = (id: number | string) => {
     if (!confirm(lang === 'bn' ? 'এই সংবাদটি মুছে ফেলতে চান?' : 'Delete this news?')) return;
     const filtered = publicArticles.filter(item => item.id !== id);
     setPublicArticles(filtered);
@@ -656,8 +649,11 @@ export default function ElakarKhoborHome() {
         </div>
         <div className="overflow-hidden whitespace-nowrap py-2 w-full text-xs text-slate-300">
           <div className="inline-block animate-pulse">
-            ★ {lang === 'bn' ? (latestLead.title_bn || latestLead.title_en) : (latestLead.title_en || latestLead.title_bn)} 
-            {publicArticles.length > 1 && ` &nbsp;&nbsp;&nbsp;&nbsp; ★ ${lang === 'bn' ? (publicArticles[1].title_bn || publicArticles[1].title_en) : (publicArticles[1].title_en || publicArticles[1].title_bn)}`}
+            {latestLead ? (
+              <>★ {lang === 'bn' ? (latestLead.title_bn || latestLead.title_en) : (latestLead.title_en || latestLead.title_bn)}</>
+            ) : (
+              <>★ {lang === 'bn' ? 'বারুণা পশ্চিম পাড়ার বস্তুনিষ্ঠ ও সত্য সংবাদ' : 'Verified community reports of Baruna Poschim Para'}</>
+            )}
           </div>
         </div>
       </div>
@@ -680,64 +676,67 @@ export default function ElakarKhoborHome() {
             {t.brand}
           </h1>
 
-          <div className="w-full bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-white/15 shadow-xl hover:border-rose-500/40 transition duration-300">
-            {latestLead.image_url && (
-              <div 
-                onClick={() => setSelectedArticle(latestLead)}
-                className="w-full h-48 sm:h-64 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
-              >
-                <img 
-                  src={latestLead.image_url} 
-                  alt="Lead cover" 
-                  className="w-full h-full object-cover object-center hover:scale-105 transition duration-500" 
-                />
-              </div>
-            )}
-
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-600 text-white mb-2 inline-block shadow">
-              {lang === 'bn' ? (latestLead.tag_bn || 'তাজা খবর') : (latestLead.tag_en || 'Top Story')}
-            </span>
-
-            {/* STRICT 2-LINE TITLE */}
-            <h2 
-              onClick={() => setSelectedArticle(latestLead)}
-              className="text-lg sm:text-2xl font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
-            >
-              {lang === 'bn' 
-                ? (latestLead.title_bn || 'বারুণা পশ্চিম পাড়ায় দুর্গাপূজার মহোৎসব প্রস্তুতি') 
-                : (latestLead.title_en || latestLead.title_bn)}
-            </h2>
-
-            {/* STRICT 3-LINE SUMMARY */}
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4 font-light line-clamp-3">
-              {lang === 'bn' 
-                ? (latestLead.summary_bn || 'শরতের আগমনী বার্তায় মুখরিত পশ্চিম পাড়া। ঐতিহ্যবাহী কাঠের তৈরি মন্দির ও দৃষ্টিনন্দন প্রতিমা দর্শনে এলাকা জুড়ে প্রস্তুতি তুঙ্গে।') 
-                : (latestLead.summary_en || latestLead.summary_bn)}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-3 text-xs">
-              <span className="text-slate-400">
-                {lang === 'bn' ? (latestLead.author_bn || 'নিজস্ব প্রতিবেদক') : (latestLead.author_en || 'Staff Reporter')}
-              </span>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => handleFacebookShare(latestLead.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-semibold transition"
-                >
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                  {lang === 'bn' ? 'শেয়ার' : 'Share'}
-                </button>
-                <button 
+          {latestLead && (
+            <div className="w-full bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-white/15 shadow-xl hover:border-rose-500/40 transition duration-300">
+              {latestLead.image_url ? (
+                <div 
                   onClick={() => setSelectedArticle(latestLead)}
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
+                  className="w-full h-48 sm:h-64 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
                 >
-                  {t.leadReadMore}
-                </button>
+                  <img 
+                    src={latestLead.image_url} 
+                    alt="Lead cover" 
+                    onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
+                    className="w-full h-full object-cover object-center hover:scale-105 transition duration-500" 
+                  />
+                </div>
+              ) : null}
+
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-600 text-white mb-2 inline-block shadow">
+                {lang === 'bn' ? (latestLead.tag_bn || 'তাজা খবর') : (latestLead.tag_en || 'Top Story')}
+              </span>
+
+              {/* STRICT 2-LINE TITLE */}
+              <h2 
+                onClick={() => setSelectedArticle(latestLead)}
+                className="text-lg sm:text-2xl font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
+              >
+                {lang === 'bn' 
+                  ? (latestLead.title_bn || latestLead.title_en) 
+                  : (latestLead.title_en || latestLead.title_bn)}
+              </h2>
+
+              {/* STRICT 3-LINE SUMMARY */}
+              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4 font-light line-clamp-3">
+                {lang === 'bn' 
+                  ? (latestLead.summary_bn || latestLead.summary_en) 
+                  : (latestLead.summary_en || latestLead.summary_bn)}
+              </p>
+
+              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-3 text-xs">
+                <span className="text-slate-400">
+                  {lang === 'bn' ? (latestLead.author_bn || 'নিজস্ব প্রতিবেদক') : (latestLead.author_en || 'Staff Reporter')}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleFacebookShare(latestLead.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-semibold transition cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    {lang === 'bn' ? 'শেয়ার' : 'Share'}
+                  </button>
+                  <button 
+                    onClick={() => setSelectedArticle(latestLead)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
+                  >
+                    {t.leadReadMore}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -785,7 +784,7 @@ export default function ElakarKhoborHome() {
                     className="bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 border border-white/10 hover:border-rose-500/50 hover:bg-white/[0.06] transition duration-300 flex flex-col justify-between overflow-hidden"
                   >
                     <div>
-                      {item.image_url && (
+                      {item.image_url ? (
                         <div 
                           onClick={() => setSelectedArticle(item)}
                           className="w-full h-44 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
@@ -793,10 +792,11 @@ export default function ElakarKhoborHome() {
                           <img 
                             src={item.image_url} 
                             alt="News Cover" 
+                            onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
                             className="w-full h-full object-cover hover:scale-105 transition duration-500" 
                           />
                         </div>
-                      )}
+                      ) : null}
                       
                       <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-900/80 border border-white/10 text-rose-300">
                         {currentTag}
@@ -821,7 +821,7 @@ export default function ElakarKhoborHome() {
                         <span>{currentAuthor}</span>
                         <div className="flex items-center gap-2">
                           {isAdminLoggedIn && (
-                            <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px]">
+                            <button onClick={() => handleDeleteNews(item.id)} className="text-red-400 hover:text-red-300 text-[11px] cursor-pointer">
                               ✕ {lang === 'bn' ? 'মুছুন' : 'Delete'}
                             </button>
                           )}
@@ -901,7 +901,7 @@ export default function ElakarKhoborHome() {
         </div>
       </section>
 
-      {/* FULL ARTICLE POPUP READER - FOREGROUND GUARANTEED Z-[100] */}
+      {/* FULL ARTICLE POPUP READER (CLEAN, SCROLLABLE, ROBUST) */}
       {selectedArticle && (
         <div 
           className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
@@ -940,18 +940,19 @@ export default function ElakarKhoborHome() {
               <span className="text-rose-400 font-semibold">{lang === 'bn' ? 'বারুণা পশ্চিম পাড়া' : 'Baruna Poschim Para'}</span>
             </div>
 
-            {/* Image */}
-            {selectedArticle.image_url && (
+            {/* Clean Image Rendering (Hides container gracefully if image is unavailable) */}
+            {selectedArticle.image_url ? (
               <div className="w-full h-56 sm:h-72 rounded-2xl overflow-hidden border border-white/10 bg-slate-950">
                 <img 
                   src={selectedArticle.image_url} 
                   alt="Full Cover" 
+                  onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
                   className="w-full h-full object-cover object-center" 
                 />
               </div>
-            )}
+            ) : null}
 
-            {/* Full News Text */}
+            {/* Full News Text (Handles multi-paragraph line breaks properly) */}
             <div className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-light py-2">
               {lang === 'bn' 
                 ? (selectedArticle.summary_bn || selectedArticle.summary_en) 
@@ -1349,7 +1350,7 @@ export default function ElakarKhoborHome() {
       {/* POLICY MODAL */}
       {isPolicyModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-lg relative">
+          <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-lg relative">
             <button onClick={() => setIsPolicyModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer">✕</button>
             <div className="flex gap-2 border-b border-white/10 pb-3 mb-4 text-xs font-bold overflow-x-auto">
               <button onClick={() => setPolicyTab('about')} className={policyTab === 'about' ? 'text-rose-500' : 'text-slate-400'}>{lang === 'bn' ? 'আমাদের সম্পর্কে' : 'About Us'}</button>
