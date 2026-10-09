@@ -17,11 +17,11 @@ export async function POST(req: Request) {
       .select();
 
     if (error) {
-      console.error("Secret publish db error:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.error('SUPABASE_ERROR_DETAILS:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 200 });
     }
 
-    return NextResponse.json({ success: true, secret: data[0] });
+    return NextResponse.json({ success: true, secret: data ? data[0] : docData });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
