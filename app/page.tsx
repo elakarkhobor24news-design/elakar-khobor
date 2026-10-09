@@ -274,8 +274,11 @@ export default function ElakarKhoborHome() {
 
   const t = translations[lang];
 
-  // Dynamic Lead
-  const latestLead = publicArticles.length > 0 ? publicArticles[0] : null;
+  // 1. DYNAMIC LATEST PUBLIC NEWS (Hero Box 1)
+  const latestPublic = publicArticles.length > 0 ? publicArticles[0] : null;
+
+  // 2. DYNAMIC LATEST SECRET VAULT (Hero Box 2)
+  const latestSecret = secretArticles.length > 0 ? secretArticles[0] : null;
 
   // Image Upload Handler
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -393,7 +396,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // Publish News (Clean dynamic authentication payload)
+  // Publish News
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -634,26 +637,35 @@ export default function ElakarKhoborHome() {
         )}
       </header>
 
-      {/* DYNAMIC BREAKING TICKER */}
-      <div className="relative z-10 border-y border-white/5 bg-slate-950/40 backdrop-blur-sm flex items-center overflow-hidden">
-        <div className="bg-rose-600 text-white text-xs font-black px-4 py-2 shrink-0 uppercase tracking-wider flex items-center gap-2">
+      {/* CONTINUOUS SMOOTH MOVING BREAKING TICKER (MARQUEE ANIMATION) */}
+      <div className="relative z-10 border-y border-white/5 bg-slate-950/50 backdrop-blur-sm flex items-center overflow-hidden">
+        <div className="bg-rose-600 text-white text-xs font-black px-4 py-2 shrink-0 uppercase tracking-wider flex items-center gap-2 shadow-lg z-20">
           <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
           {t.tickerBadge}
         </div>
-        <div className="overflow-hidden whitespace-nowrap py-2 w-full text-xs text-slate-300">
-          <div className="inline-block animate-pulse">
-            {latestLead ? (
-              <>★ {lang === 'bn' ? (latestLead.title_bn || latestLead.title_en) : (latestLead.title_en || latestLead.title_bn)}</>
-            ) : (
-              <>★ {lang === 'bn' ? 'বারুণা পশ্চিম পাড়ার বস্তুনিষ্ঠ ও সত্য সংবাদ' : 'Verified community reports of Baruna Poschim Para'}</>
+        <div className="flex overflow-hidden whitespace-nowrap w-full">
+          <div className="inline-flex shrink-0 animate-marquee text-xs text-slate-200 gap-8 py-2 font-medium">
+            <span>★ {latestPublic ? (lang === 'bn' ? (latestPublic.title_bn || latestPublic.title_en) : (latestPublic.title_en || latestPublic.title_bn)) : 'বারুণা পশ্চিম পাড়ার বস্তুনিষ্ঠ ও তাজা সংবাদ'}</span>
+            <span>★ [গোপন ভল্ট]: {latestSecret ? (lang === 'bn' ? latestSecret.titleBn : latestSecret.titleEn) : 'অনুসন্ধানী প্রতিবেদন প্রস্তুত'}</span>
+            {publicArticles.length > 1 && (
+              <span>★ {lang === 'bn' ? (publicArticles[1].title_bn || publicArticles[1].title_en) : (publicArticles[1].title_en || publicArticles[1].title_bn)}</span>
             )}
+            <span>★ বারুণা পশ্চিম পাড়া • মুক্তির দোকান • ওয়াপদার মাথা • সার্বক্ষণিক সত্য সংবাদ আপডেট</span>
+          </div>
+          <div className="inline-flex shrink-0 animate-marquee text-xs text-slate-200 gap-8 py-2 font-medium" aria-hidden="true">
+            <span>★ {latestPublic ? (lang === 'bn' ? (latestPublic.title_bn || latestPublic.title_en) : (latestPublic.title_en || latestPublic.title_bn)) : 'বারুণা পশ্চিম পাড়ার বস্তুনিষ্ঠ ও তাজা সংবাদ'}</span>
+            <span>★ [গোপন ভল্ট]: {latestSecret ? (lang === 'bn' ? latestSecret.titleBn : latestSecret.titleEn) : 'অনুসন্ধানী প্রতিবেদন প্রস্তুত'}</span>
+            {publicArticles.length > 1 && (
+              <span>★ {lang === 'bn' ? (publicArticles[1].title_bn || publicArticles[1].title_en) : (publicArticles[1].title_en || publicArticles[1].title_bn)}</span>
+            )}
+            <span>★ বারুণা পশ্চিম পাড়া • মুক্তির দোকান • ওয়াপদার মাথা • সার্বক্ষণিক সত্য সংবাদ আপডেট</span>
           </div>
         </div>
       </div>
 
-      {/* COMPACT BALANCED HERO SECTION */}
+      {/* HERO SECTION: 2 TRANSPARENT BOXES (LATEST PUBLIC & LATEST SECRET VAULT) */}
       <section id="hero" className="relative z-10 py-10 px-4">
-        <div className="max-w-4xl mx-auto flex flex-col items-start">
+        <div className="max-w-7xl mx-auto flex flex-col items-start">
           <div className="flex flex-wrap items-center justify-between gap-4 w-full mb-3">
             <span className="px-3 py-1 rounded-full border border-rose-500/40 bg-rose-950/20 backdrop-blur-md text-rose-300 text-xs font-bold">
               {t.motto}
@@ -665,71 +677,160 @@ export default function ElakarKhoborHome() {
             </div>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-rose-500 tracking-tight mb-4 drop-shadow-lg">
+          <h1 className="text-3xl sm:text-5xl font-black text-rose-500 tracking-tight mb-6 drop-shadow-lg">
             {t.brand}
           </h1>
 
-          {latestLead && (
-            <div className="w-full bg-white/[0.03] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-white/15 shadow-xl hover:border-rose-500/40 transition duration-300">
-              {latestLead.image_url ? (
-                <div 
-                  onClick={() => setSelectedArticle(latestLead)}
-                  className="w-full h-48 sm:h-64 mb-4 rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer"
+          {/* TWO SIDE-BY-SIDE TRANSPARENT GLASS BOXES */}
+          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* BOX 1: LATEST PUBLIC NEWS (TRANSPARENT GLASS) */}
+            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-600 text-white shadow">
+                    {lang === 'bn' ? 'সর্বশেষ প্রকাশ্য সংবাদ' : 'Latest Public Story'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {latestPublic ? (lang === 'bn' ? (latestPublic.tag_bn || 'দুর্গা মন্দির') : (latestPublic.tag_en || 'Durga Mondir')) : ''}
+                  </span>
+                </div>
+
+                {latestPublic?.image_url && (
+                  <div 
+                    onClick={() => setSelectedArticle(latestPublic)}
+                    className="w-full h-44 sm:h-56 mb-3 rounded-xl overflow-hidden border border-white/10 bg-slate-950/60 cursor-pointer"
+                  >
+                    <img 
+                      src={latestPublic.image_url} 
+                      alt="Latest Public Cover" 
+                      onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
+                      className="w-full h-full object-cover object-center hover:scale-105 transition duration-500" 
+                    />
+                  </div>
+                )}
+
+                <h2 
+                  onClick={() => latestPublic && setSelectedArticle(latestPublic)}
+                  className="text-base sm:text-xl font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
                 >
-                  <img 
-                    src={latestLead.image_url} 
-                    alt="Lead cover" 
-                    onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
-                    className="w-full h-full object-cover object-center hover:scale-105 transition duration-500" 
-                  />
-                </div>
-              ) : null}
+                  {latestPublic 
+                    ? (lang === 'bn' ? (latestPublic.title_bn || latestPublic.title_en) : (latestPublic.title_en || latestPublic.title_bn))
+                    : (lang === 'bn' ? 'বারুণা পশ্চিম পাড়ায় নতুন কোনো প্রকাশ্য সংবাদ নেই।' : 'No public news published yet.')}
+                </h2>
 
-              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-600 text-white mb-2 inline-block shadow">
-                {lang === 'bn' ? (latestLead.tag_bn || 'তাজা খবর') : (latestLead.tag_en || 'Top Story')}
-              </span>
+                <p className="text-slate-300 text-xs leading-relaxed mb-4 font-light line-clamp-3">
+                  {latestPublic 
+                    ? (lang === 'bn' ? (latestPublic.summary_bn || latestPublic.summary_en) : (latestPublic.summary_en || latestPublic.summary_bn))
+                    : (lang === 'bn' ? 'পোর্টাল অ্যাডমিন ডেস্কে ঢুকে সরাসরি নতুন সংবাদ প্রকাশ করুন।' : 'Login to Admin Desk to post updates.')}
+                </p>
+              </div>
 
-              {/* STRICT 2-LINE TITLE */}
-              <h2 
-                onClick={() => setSelectedArticle(latestLead)}
-                className="text-lg sm:text-2xl font-bold text-white mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-rose-400 transition"
-              >
-                {lang === 'bn' 
-                  ? (latestLead.title_bn || latestLead.title_en) 
-                  : (latestLead.title_en || latestLead.title_bn)}
-              </h2>
-
-              {/* STRICT 3-LINE SUMMARY */}
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4 font-light line-clamp-3">
-                {lang === 'bn' 
-                  ? (latestLead.summary_bn || latestLead.summary_en) 
-                  : (latestLead.summary_en || latestLead.summary_bn)}
-              </p>
-
-              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs">
                 <span className="text-slate-400">
-                  {lang === 'bn' ? (latestLead.author_bn || 'নিজস্ব প্রতিবেদক') : (latestLead.author_en || 'Staff Reporter')}
+                  {latestPublic ? (lang === 'bn' ? (latestPublic.author_bn || 'নিজস্ব প্রতিবেদক') : (latestPublic.author_en || 'Staff Reporter')) : ''}
                 </span>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => handleFacebookShare(latestLead.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-semibold transition cursor-pointer"
-                  >
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    {lang === 'bn' ? 'শেয়ার' : 'Share'}
-                  </button>
-                  <button 
-                    onClick={() => setSelectedArticle(latestLead)}
-                    className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
-                  >
-                    {t.leadReadMore}
-                  </button>
-                </div>
+                {latestPublic && (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleFacebookShare(latestPublic.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-semibold transition cursor-pointer"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      {lang === 'bn' ? 'শেয়ার' : 'Share'}
+                    </button>
+                    <button 
+                      onClick={() => setSelectedArticle(latestPublic)}
+                      className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
+                    >
+                      {t.leadReadMore}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+
+            {/* BOX 2: LATEST SECRET NEWS VAULT (TRANSPARENT AMBER GLASS) */}
+            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 sm:p-6 border border-amber-500/30 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-amber-400/60 transition duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-600/90 text-white shadow font-mono">
+                      {lang === 'bn' ? 'সর্বশেষ গোপন অনুসন্ধান (ভল্ট)' : 'Latest Confidential Vault'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-300/80 font-mono">
+                    {latestSecret ? latestSecret.code : 'DOC-RESTRICTED'}
+                  </span>
+                </div>
+
+                {/* Secret Locked Card Banner */}
+                <div className="w-full p-4 mb-3 rounded-xl bg-slate-950/60 border border-amber-500/20 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                      🔒
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-amber-300 font-mono">ENCRYPTED CLASSIFIED</div>
+                      <div className="text-[10px] text-slate-400">বারুণা পশ্চিম পাড়া গোপন অনুসন্ধানী নথি</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-950/50 px-2 py-1 rounded border border-amber-500/30">
+                    PIN REQUIRED
+                  </span>
+                </div>
+
+                <h2 
+                  onClick={() => latestSecret && (!approvedSecrets.includes(latestSecret.id) ? (setSelectedSecretId(latestSecret.id), setIsUnlockModalOpen(true)) : null)}
+                  className="text-base sm:text-xl font-bold text-amber-100 mb-2 leading-snug line-clamp-2 cursor-pointer hover:text-amber-300 transition"
+                >
+                  {latestSecret 
+                    ? (lang === 'bn' ? latestSecret.titleBn : latestSecret.titleEn) 
+                    : (lang === 'bn' ? 'কোনো গোপন অনুসন্ধানী নথি নেই।' : 'No confidential report in vault.')}
+                </h2>
+
+                {latestSecret && approvedSecrets.includes(latestSecret.id) ? (
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-mono leading-relaxed mb-4">
+                    {lang === 'bn' ? latestSecret.secretTextBn : latestSecret.secretTextEn}
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-xs leading-relaxed mb-4 font-light line-clamp-3 filter blur-[0.4px]">
+                    {latestSecret 
+                      ? (lang === 'bn' ? latestSecret.summaryBn : latestSecret.summaryEn) 
+                      : (lang === 'bn' ? 'প্রশাসনের বিশেষ যাচাইকৃত নথি এই ভল্টে সংরক্ষিত হয়।' : 'Restricted reports protected.')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs">
+                <span className="text-amber-400/80 font-mono text-[11px]">
+                  {latestSecret ? latestSecret.code : ''}
+                </span>
+                {latestSecret && !approvedSecrets.includes(latestSecret.id) ? (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => { setSelectedSecretId(latestSecret.id); setIsRequestModalOpen(true); }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-amber-300 border border-amber-500/30 text-xs font-semibold transition cursor-pointer"
+                    >
+                      {t.requestBtn}
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedSecretId(latestSecret.id); setIsUnlockModalOpen(true); }}
+                      className="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition shadow shadow-amber-950/40 cursor-pointer"
+                    >
+                      {t.unlockBtn}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-emerald-400 font-bold text-xs">✓ আনলক করা হয়েছে</span>
+                )}
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -845,7 +946,7 @@ export default function ElakarKhoborHome() {
         )}
       </section>
 
-      {/* SECRET INVESTIGATIVE VAULT */}
+      {/* SECRET INVESTIGATIVE VAULT SECTION */}
       <section id="secret-news-section" className="relative z-10 max-w-7xl mx-auto px-4 py-16 border-t border-white/10">
         <div className="bg-white/[0.03] backdrop-blur-[2px] p-6 sm:p-8 rounded-3xl border border-rose-500/30 mb-8 flex justify-between items-center">
           <div>
