@@ -131,7 +131,7 @@ function Background3D() {
         const currY = Math.sin(s.angle) * s.dist;
 
         let x1 = currX * cosY - currY * sinY;
-        let y1 = currX * sinY + currY * balanceCos(currX, currY);
+        let y1 = currX * sinY + currY * cosY;
         let y2 = y1 * cosP - s.z * sinP;
         let z2 = y1 * sinP + s.z * cosP;
 
@@ -149,10 +149,6 @@ function Background3D() {
           alpha: s.alpha
         };
       });
-
-      function balanceCos(cx: number, cy: number) {
-        return cy * Math.cos(0);
-      }
 
       projected.sort((a, b) => a.z - b.z);
 
@@ -231,7 +227,7 @@ export default function ElakarKhoborHome() {
   // Articles list
   const [publicArticles, setPublicArticles] = useState<any[]>([]);
 
-  // Default fallback secret articles
+  // Secret articles
   const [secretArticles, setSecretArticles] = useState<any[]>([
     {
       id: 'sec-01',
@@ -320,7 +316,7 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // Live Database Loader for Public & Secret Articles
+  // Database Loader for Public, Secret Articles & Clearance Requests
   const loadArticles = () => {
     // 1. Load Public News from Server Database
     fetch('/api/news/public', { cache: 'no-store' })
@@ -352,6 +348,23 @@ export default function ElakarKhoborHome() {
         }
       })
       .catch(() => {});
+
+    // 3. Load Pending Clearance Requests from Server Database
+    fetch('/api/news/secret-requests', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.requests && Array.isArray(data.requests)) {
+          const formatted = data.requests.map((r: any) => ({
+            id: r.id,
+            docId: r.doc_id,
+            name: r.name,
+            reason: r.reason,
+            time: r.time,
+          }));
+          setPendingRequests(formatted);
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -378,7 +391,6 @@ export default function ElakarKhoborHome() {
 
     try {
       setApprovedSecrets(JSON.parse(localStorage.getItem('elakar_approved_secrets') || '[]'));
-      setPendingRequests(JSON.parse(localStorage.getItem('elakar_pending_requests') || '[]'));
       setCitizenTips(JSON.parse(localStorage.getItem('elakar_tips') || '[]'));
     } catch {}
 
@@ -537,33 +549,54 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  const handleClearanceSubmit = (e: React.FormEvent) => {
+  // Clearance Request to Supabase Database
+  const handleClearanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newReq = {
       id: 'req-' + Date.now(),
-      docId: selectedSecretId,
+      doc_id: selectedSecretId,
       name: reqName,
       reason: reqReason,
       time: new Date().toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { timeZone: 'Asia/Dhaka' })
     };
-    const updated = [newReq, ...pendingRequests];
-    setPendingRequests(updated);
-    localStorage.setItem('elakar_pending_requests', JSON.stringify(updated));
-    alert(lang === 'bn' ? 'অনুরোধ পাঠানো হয়েছে! অ্যাডমিন পর্যালোচনা করবেন।' : 'Clearance request submitted.');
-    setIsRequestModalOpen(false);
-    setReqName('');
-    setReqReason('');
+
+    try {
+      const res = await fetch('/api/news/secret-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReq),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert(lang === 'bn' ? 'অনুরোধ পাঠানো হয়েছে! অ্যাডমিন পর্যালোচনা করবেন।' : 'Clearance request submitted.');
+        setIsRequestModalOpen(false);
+        setReqName('');
+        setReqReason('');
+      } else {
+        alert(lang === 'bn' ? 'অনুরোধ পাঠাতে ব্যর্থ হয়েছে।' : 'Failed to submit request.');
+      }
+    } catch {
+      alert(lang === 'bn' ? 'সার্ভার সংযোগ সমস্যা।' : 'Server connection error.');
+    }
   };
 
-  const approveSecret = (docId: string, reqId: string) => {
+  // Approve Secret & Delete Request from Database
+  const approveSecret = async (docId: string, reqId: string) => {
     if (!approvedSecrets.includes(docId)) {
       const upDocs = [...approvedSecrets, docId];
       setApprovedSecrets(upDocs);
       localStorage.setItem('elakar_approved_secrets', JSON.stringify(upDocs));
     }
-    const upReqs = pendingRequests.filter(r => r.id !== reqId);
-    setPendingRequests(upReqs);
-    localStorage.setItem('elakar_pending_requests', JSON.stringify(upReqs));
+
+    try {
+      await fetch('/api/news/secret-requests', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: reqId }),
+      });
+      setPendingRequests(prev => prev.filter(r => r.id !== reqId));
+    } catch {}
   };
 
   const handleTipSubmit = (e: React.FormEvent) => {
@@ -1426,17 +1459,17 @@ export default function ElakarKhoborHome() {
               </form>
             </div>
 
-            {/* 3. PENDING REQUESTS */}
+            {/* 3. PENDING REQUESTS (FROM SUPABASE DATABASE) */}
             <div>
               <h4 className="text-xs font-bold text-amber-400 mb-2">{lang === 'bn' ? '৩. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা:' : '3. Pending Clearance Requests:'}</h4>
               <div className="space-y-2">
                 {pendingRequests.length === 0 ? <p className="text-xs text-slate-500">{lang === 'bn' ? 'কোনো অনুরোধ নেই।' : 'No pending requests.'}</p> : pendingRequests.map(r => (
-                  <div key={r.id} className="p-3 bg-slate-950 rounded-xl flex justify-between items-center text-xs">
+                  <div key={r.id} className="p-3 bg-slate-950 rounded-xl flex justify-between items-center text-xs border border-white/5">
                     <div>
-                      <div className="font-bold text-white">{r.name} ({r.reason})</div>
-                      <div className="text-rose-400 text-[10px]">{r.docId} - {r.time}</div>
+                      <div className="font-bold text-white">{r.name} <span className="text-slate-400 font-normal">({r.reason})</span></div>
+                      <div className="text-rose-400 text-[10px] font-mono">{r.docId} • {r.time}</div>
                     </div>
-                    <button onClick={() => approveSecret(r.docId, r.id)} className="px-3 py-1 bg-emerald-600 rounded text-white font-bold cursor-pointer">
+                    <button onClick={() => approveSecret(r.docId, r.id)} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-white font-bold text-xs transition cursor-pointer">
                       {lang === 'bn' ? 'অনুমোদন দিন' : 'Grant Access'}
                     </button>
                   </div>
