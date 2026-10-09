@@ -7,9 +7,10 @@ export async function POST(req: Request) {
     const payload = {
       id: body.id || 'req-' + Date.now(),
       doc_id: body.doc_id || body.docId || '',
-      name: body.name || 'Anonymous',
-      reason: body.reason || 'Want to read',
-      time: body.time || new Date().toLocaleTimeString('bn-BD', { timeZone: 'Asia/Dhaka' })
+      name: body.name || 'বেনামী পাঠক',
+      reason: body.reason || 'তদন্তমূলক রিপোর্ট পড়তে চাই',
+      time: body.time || new Date().toLocaleTimeString('bn-BD', { timeZone: 'Asia/Dhaka' }),
+      status: 'pending'
     };
 
     const { data, error } = await supabaseServer
@@ -18,8 +19,8 @@ export async function POST(req: Request) {
       .select();
 
     if (error) {
-      console.error('Request insert error:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 200 });
+      console.error('Supabase secret_requests insert error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, request: data ? data[0] : payload });
@@ -36,8 +37,8 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Request get error:', error);
-      return NextResponse.json({ success: false, requests: [] }, { status: 200 });
+      console.error('Supabase secret_requests get error:', error);
+      return NextResponse.json({ success: false, error: error.message, requests: [] }, { status: 200 });
     }
 
     return NextResponse.json(
@@ -45,7 +46,7 @@ export async function GET() {
       { headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
   } catch (err: any) {
-    return NextResponse.json({ success: false, requests: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message, requests: [] }, { status: 200 });
   }
 }
 
@@ -57,7 +58,10 @@ export async function DELETE(req: Request) {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

@@ -333,16 +333,18 @@ export default function ElakarKhoborHome() {
           setPendingRequests(formatted);
 
           // Check if my requested document got approved by admin
-          const myLocalReqs = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
-          const approvedDocIds: string[] = [];
-          formatted.forEach((req: any) => {
-            if (myLocalReqs.includes(req.id) && req.status === 'approved') {
-              approvedDocIds.push(req.docId);
+          try {
+            const myLocalReqs = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
+            const approvedDocIds: string[] = [];
+            formatted.forEach((req: any) => {
+              if (myLocalReqs.includes(req.id) && req.status === 'approved') {
+                approvedDocIds.push(req.docId);
+              }
+            });
+            if (approvedDocIds.length > 0) {
+              setApprovedSecrets((prev) => Array.from(new Set([...prev, ...approvedDocIds])));
             }
-          });
-          if (approvedDocIds.length > 0) {
-            setApprovedSecrets((prev) => Array.from(new Set([...prev, ...approvedDocIds])));
-          }
+          } catch {}
         }
       })
       .catch(() => {});
@@ -575,7 +577,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Bulletproof Clearance Request Submit (Instant DB commit & no errors)
+  // Bulletproof Clearance Request Submit (Direct Error-Reporting)
   const handleClearanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const requestId = 'req-' + Date.now();
@@ -587,36 +589,41 @@ export default function ElakarKhoborHome() {
       time: new Date().toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { timeZone: 'Asia/Dhaka' })
     };
 
-    // Save my requested id locally so I can auto-unlock when admin approves
     try {
       const mySaved = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
       localStorage.setItem('my_sent_requests', JSON.stringify([...mySaved, requestId]));
     } catch {}
 
     try {
-      await fetch('/api/news/secret-requests', {
+      const res = await fetch('/api/news/secret-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqPayload),
       });
-    } catch {}
 
-    alert(lang === 'bn' ? 'অনুরোধ পাঠানো হয়েছে! অ্যাডমিন অনুমোদন দিলেই আপনি পড়তে পারবেন।' : 'Clearance request submitted! You can read once admin approves.');
-    setIsRequestModalOpen(false);
-    setReqName('');
-    setReqReason('');
+      const data = await res.json();
+      if (!data.success) {
+        alert((lang === 'bn' ? 'সার্ভার সমস্যা: ' : 'Server Error: ') + (data.error || 'ডাটাবেসে সেভ হয়নি'));
+        return;
+      }
+
+      alert(lang === 'bn' ? 'অনুরোধ ডাটাবেসে সফলভাবে পাঠানো হয়েছে! অ্যাডমিন অনুমোদন দিলেই পড়তে পারবেন।' : 'Clearance request submitted to database!');
+      setIsRequestModalOpen(false);
+      setReqName('');
+      setReqReason('');
+    } catch (err: any) {
+      alert((lang === 'bn' ? 'নেটওয়ার্ক সমস্যা: ' : 'Network Error: ') + err.message);
+    }
   };
 
   // Approve Secret -> Update status so user can read + remove from pending
   const approveSecret = async (docId: string, reqId: string) => {
-    // 1. Immediately unlock for current admin screen
     if (!approvedSecrets.includes(docId)) {
       const upDocs = [...approvedSecrets, docId];
       setApprovedSecrets(upDocs);
       localStorage.setItem('elakar_approved_secrets', JSON.stringify(upDocs));
     }
 
-    // 2. Mark as approved on database
     try {
       await fetch('/api/news/secret-requests', {
         method: 'DELETE',
@@ -1450,7 +1457,7 @@ export default function ElakarKhoborHome() {
                       rows={2} 
                       placeholder="Brief hint..." 
                       value={newSecretSummaryEn} 
-                      onChange={e => setNewSummaryEn(e.target.value)} 
+                      onChange={e => setNewSecretSummaryEn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
                     />
                   </div>
