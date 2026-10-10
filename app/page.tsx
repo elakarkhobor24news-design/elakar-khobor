@@ -210,6 +210,20 @@ export default function ElakarKhoborHome() {
   // Reader Modal State
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
+  // New Features: 3-Dot Corner Menu & Video-Style Kinetic Headline Overlay
+  const [isThreeDotOpen, setIsThreeDotOpen] = useState(false);
+  const [selectedExtraModal, setSelectedExtraModal] = useState<string | null>(null);
+  const [isHeadlineSliderOpen, setIsHeadlineSliderOpen] = useState(false);
+  const [sliderIndex, setSliderIndex] = useState(0);
+
+  // Extras Content (Manageable from Admin Panel)
+  const [siteExtras, setSiteExtras] = useState<Record<string, string>>({
+    load_shedding: 'বারুণা পশ্চিম পাড়ায় আজ দুপুর ২টা থেকে বিকেল ৪টা পর্যন্ত লাইন মেরামতের জন্য বিদ্যুৎ বন্ধ থাকতে পারে।',
+    sports: 'বারুণা তরুণ সংঘের আয়োজনে আগামী শুক্রবার স্থানীয় খেলার মাঠে ফুটবল টুর্নামেন্টের ফাইনাল ম্যাচ অনুষ্ঠিত হবে।',
+    stories: '১৯৮২ সালের বন্যার স্মৃতি: ওয়াপদার বাঁধ ও মুক্তির দোকানে প্রবীণদের সেই সংগ্রামের সোনালী কথা।',
+    education: 'খুলনা বিশ্ববিদ্যালয় ও বিএল কলেজে নতুন শিক্ষাবর্ষের ভর্তি তথ্য ও স্থানীয় শিক্ষার্থীদের ক্যারিয়ার পরামর্শ।'
+  });
+
   // Vault states
   const [selectedSecretId, setSelectedSecretId] = useState('');
   const [unlockPin, setUnlockPin] = useState('');
@@ -283,6 +297,25 @@ export default function ElakarKhoborHome() {
   const latestPublic = publicArticles.length > 0 ? publicArticles[0] : null;
   const latestSecret = secretArticles.length > 0 ? secretArticles[0] : null;
 
+  // Last 5 days automatic filter for kinetic slider
+  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).getTime();
+  const lastFiveDaysArticles = publicArticles
+    .filter(a => {
+      const artTime = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+      return artTime >= fiveDaysAgo;
+    })
+    .slice(0, 8);
+  const activeSliderArticles = lastFiveDaysArticles.length > 0 ? lastFiveDaysArticles : publicArticles.slice(0, 5);
+
+  // Auto slide interval (4.2 seconds auto rotation)
+  useEffect(() => {
+    if (!isHeadlineSliderOpen || activeSliderArticles.length === 0) return;
+    const interval = setInterval(() => {
+      setSliderIndex(prev => (prev + 1) % activeSliderArticles.length);
+    }, 4200);
+    return () => clearInterval(interval);
+  }, [isHeadlineSliderOpen, activeSliderArticles.length]);
+
   // Visitor Tracking Trigger
   useEffect(() => {
     try {
@@ -295,6 +328,18 @@ export default function ElakarKhoborHome() {
         })
         .catch(() => {});
     } catch {}
+  }, []);
+
+  // Fetch Site Extras
+  useEffect(() => {
+    fetch('/api/site-extras')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.extras && Object.keys(data.extras).length > 0) {
+          setSiteExtras(prev => ({ ...prev, ...data.extras }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Image Upload Handler
@@ -325,7 +370,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Dedicated Facebook Share
+  // Facebook Share
   const handleFacebookShare = (articleId: string | number) => {
     if (typeof window === 'undefined') return;
     const postUrl = `${window.location.origin}/?article=${articleId}`;
@@ -333,7 +378,7 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // Live Fetch Pending Requests with Auto-approval sync
+  // Live Fetch Pending Requests
   const fetchPendingRequests = () => {
     fetch('/api/news/secret-requests', { cache: 'no-store' })
       .then((res) => res.json())
@@ -349,7 +394,6 @@ export default function ElakarKhoborHome() {
           }));
           setPendingRequests(formatted);
 
-          // Check if my requested document got approved by admin or telegram bot
           try {
             const myLocalReqs = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
             const approvedDocIds: string[] = [];
@@ -371,7 +415,6 @@ export default function ElakarKhoborHome() {
       .catch(() => {});
   };
 
-  // Polling hook: fast check every 3.5 seconds for instant reading
   useEffect(() => {
     const pollInterval = setInterval(() => {
       fetchPendingRequests();
@@ -379,9 +422,7 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Database Loader for Public, Secret Articles & Clearance Requests
   const loadArticles = () => {
-    // 1. Load Public News from Server Database
     fetch('/api/news/public', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
@@ -391,7 +432,6 @@ export default function ElakarKhoborHome() {
       })
       .catch(() => {});
 
-    // 2. Load Secret Vault News from Server Database
     fetch('/api/news/secret-list', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
@@ -412,7 +452,6 @@ export default function ElakarKhoborHome() {
       })
       .catch(() => {});
 
-    // 3. Load Pending Clearance Requests
     fetchPendingRequests();
   };
 
@@ -446,14 +485,12 @@ export default function ElakarKhoborHome() {
     return () => clearInterval(timer);
   }, [lang]);
 
-  // When Admin Panel opens, live refresh requests automatically
   useEffect(() => {
     if (isAdminPanelOpen) {
       fetchPendingRequests();
     }
   }, [isAdminPanelOpen]);
 
-  // Publish News to Supabase Database
   const handlePublishNews = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingNews(true);
@@ -496,7 +533,6 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Permanent Delete News Handler (Synced with Supabase)
   const handleDeleteNews = async (id: number | string) => {
     if (!confirm(lang === 'bn' ? 'এই সংবাদটি ডাটাবেস থেকে স্থায়ীভাবে মুছে ফেলতে চান?' : 'Delete this news permanently?')) return;
 
@@ -523,7 +559,6 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Publish Secret News to Supabase Database
   const handlePublishSecretNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSecretCustomPin.trim()) {
@@ -588,7 +623,19 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Direct Unlock via PIN or Admin Approval
+  // Save Extras from Admin
+  const handleSaveExtra = async (key: string, val: string) => {
+    setSiteExtras(prev => ({ ...prev, [key]: val }));
+    try {
+      await fetch('/api/site-extras', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value: val }),
+      });
+      alert(lang === 'bn' ? 'তথ্য সফলভাবে সংরক্ষিত হয়েছে!' : 'Saved successfully!');
+    } catch {}
+  };
+
   const handleUnlockSecret = (e: React.FormEvent) => {
     e.preventDefault();
     const doc = secretArticles.find(d => d.id === selectedSecretId);
@@ -606,7 +653,6 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Bulletproof Clearance Request Submit (With Telegram Bot Notification Trigger)
   const handleClearanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const requestId = 'req-' + Date.now();
@@ -645,7 +691,6 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Approve Secret -> Update status so user can read + remove from pending
   const approveSecret = async (docId: string, reqId: string) => {
     if (!approvedSecrets.includes(docId)) {
       const upDocs = [...approvedSecrets, docId];
@@ -676,7 +721,6 @@ export default function ElakarKhoborHome() {
       time: new Date().toLocaleString()
     };
 
-    // ব্যাকগ্রাউন্ডে গোপনে টেলিগ্রামে পাঠিয়ে দেবে
     try {
       await fetch('/api/news/tip', {
         method: 'POST',
@@ -748,7 +792,7 @@ export default function ElakarKhoborHome() {
             <a href="#secret-news-section" className="px-3.5 py-2 text-sm font-semibold text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-500/10 transition">{t.navSecret}</a>
             <button 
               onClick={() => setIsMapModalOpen(true)} 
-              className="px-3.5 py-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/10 transition flex items-center gap-1.5"
+              className="px-3.5 py-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 rounded-lg hover:bg-emerald-500/10 transition flex items-center gap-1.5 cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               {t.navMap}
@@ -756,13 +800,52 @@ export default function ElakarKhoborHome() {
           </nav>
 
           <div className="flex items-center space-x-3">
-            <button onClick={() => setIsTipModalOpen(true)} className="hidden sm:inline-flex px-3.5 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-rose-600/30 text-slate-200 border border-white/10 backdrop-blur transition">
+            <button onClick={() => setIsTipModalOpen(true)} className="hidden sm:inline-flex px-3.5 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-rose-600/30 text-slate-200 border border-white/10 backdrop-blur transition cursor-pointer">
               {t.navTipBtn}
             </button>
+            
             <div className="flex items-center p-1 rounded-xl bg-slate-900/60 backdrop-blur border border-white/10">
               <button onClick={() => setLang('bn')} className={`px-3 py-1 text-xs font-bold rounded-lg transition ${lang === 'bn' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>বাংলা</button>
               <button onClick={() => setLang('en')} className={`px-3 py-1 text-xs font-bold rounded-lg transition ${lang === 'en' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>English</button>
             </div>
+
+            {/* THREE-DOT CORNER MENU */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsThreeDotOpen(!isThreeDotOpen)} 
+                className="w-9 h-9 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/15 flex items-center justify-center font-bold text-lg transition cursor-pointer"
+                title="মেনু"
+              >
+                ⋮
+              </button>
+
+              {isThreeDotOpen && (
+                <div 
+                  className="absolute right-0 mt-2 w-64 rounded-2xl bg-slate-950/95 border border-white/15 backdrop-blur-xl shadow-2xl p-2 z-50 space-y-1 text-xs font-medium"
+                  onClick={() => setIsThreeDotOpen(false)}
+                >
+                  <button onClick={() => setSelectedExtraModal('load_shedding')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-left text-amber-300 transition cursor-pointer">
+                    <span>⚡</span> <span>{lang === 'bn' ? 'বিদ্যুৎ শিডিউল / লোডশেডিং' : 'Load Shedding Alert'}</span>
+                  </button>
+                  <button onClick={() => setSelectedExtraModal('sports')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-left text-emerald-300 transition cursor-pointer">
+                    <span>⚽</span> <span>{lang === 'bn' ? 'খেলাধুলা' : 'Sports'}</span>
+                  </button>
+                  <button onClick={() => setSelectedExtraModal('stories')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-left text-indigo-300 transition cursor-pointer">
+                    <span>📜</span> <span>{lang === 'bn' ? 'পুরনো গল্প / ইতিহাস' : 'Old Stories'}</span>
+                  </button>
+                  <button onClick={() => setSelectedExtraModal('education')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-left text-cyan-300 transition cursor-pointer">
+                    <span>🎓</span> <span>{lang === 'bn' ? 'পড়াশোনা' : 'Education'}</span>
+                  </button>
+                  <button onClick={() => setSelectedExtraModal('history')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-left text-rose-300 transition cursor-pointer">
+                    <span>⏳</span> <span>{lang === 'bn' ? 'ইতিহাসে আজকের দিন' : 'Today in History'}</span>
+                  </button>
+                  <button onClick={() => setSelectedExtraModal('weather')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-left text-sky-300 transition border-t border-white/5 pt-2 cursor-pointer">
+                    <span>☁️</span> <span>{lang === 'bn' ? `লাইভ আবহাওয়া (${weatherStr})` : `Live Weather (${weatherStr})`}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white">☰</button>
           </div>
         </div>
@@ -804,7 +887,7 @@ export default function ElakarKhoborHome() {
         </div>
       </div>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION WITH BALANCED 3-BOX LAYOUT */}
       <section id="hero" className="relative z-10 py-10 px-4">
         <div className="max-w-7xl mx-auto flex flex-col items-start">
           <div className="flex flex-wrap items-center justify-between gap-4 w-full mb-3">
@@ -822,10 +905,11 @@ export default function ElakarKhoborHome() {
             {t.brand}
           </h1>
 
-          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          {/* 3-BOX BALANCED GRID */}
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-stretch">
             
-            {/* BOX 1: LATEST PUBLIC NEWS */}
-            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300 flex flex-col justify-between max-h-[480px]">
+            {/* BOX 1: LATEST PUBLIC NEWS (Col 5) */}
+            <div className="lg:col-span-5 bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-500/50 transition duration-300 flex flex-col justify-between max-h-[480px]">
               <div className="overflow-hidden">
                 <div className="flex items-center justify-between mb-3">
                   <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-600 text-white shadow">
@@ -839,7 +923,7 @@ export default function ElakarKhoborHome() {
                 {latestPublic?.image_url && (
                   <div 
                     onClick={() => setSelectedArticle(latestPublic)}
-                    className="w-full h-40 sm:h-48 mb-3 rounded-xl overflow-hidden border border-white/10 bg-slate-950/60 cursor-pointer shrink-0"
+                    className="w-full h-36 sm:h-44 mb-3 rounded-xl overflow-hidden border border-white/10 bg-slate-950/60 cursor-pointer shrink-0"
                   >
                     <img 
                       src={latestPublic.image_url} 
@@ -867,14 +951,14 @@ export default function ElakarKhoborHome() {
               </div>
 
               <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs mt-auto">
-                <span className="text-slate-400 truncate max-w-[140px]">
+                <span className="text-slate-400 truncate max-w-[130px]">
                   {latestPublic ? (lang === 'bn' ? (latestPublic.author_bn || 'নিজস্ব প্রতিবেদক') : (latestPublic.author_en || 'Staff Reporter')) : ''}
                 </span>
                 {latestPublic && (
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => handleFacebookShare(latestPublic.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-semibold transition cursor-pointer"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-semibold transition cursor-pointer"
                     >
                       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -883,7 +967,7 @@ export default function ElakarKhoborHome() {
                     </button>
                     <button 
                       onClick={() => setSelectedArticle(latestPublic)}
-                      className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow cursor-pointer"
                     >
                       {t.leadReadMore}
                     </button>
@@ -892,14 +976,14 @@ export default function ElakarKhoborHome() {
               </div>
             </div>
 
-            {/* BOX 2: LATEST SECRET NEWS VAULT */}
-            <div className="w-full bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 border border-amber-500/30 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-amber-400/60 transition duration-300 flex flex-col justify-between max-h-[480px]">
+            {/* BOX 2: LATEST SECRET NEWS VAULT (Col 4) */}
+            <div className="lg:col-span-4 bg-white/[0.04] backdrop-blur-[2px] rounded-2xl p-5 border border-amber-500/30 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-amber-400/60 transition duration-300 flex flex-col justify-between max-h-[480px]">
               <div className="overflow-hidden">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                     <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-amber-600/90 text-white shadow font-mono">
-                      {lang === 'bn' ? 'গোপন অনুসন্ধান (ভল্ট)' : 'Confidential Vault'}
+                      {lang === 'bn' ? 'গোপন ভল্ট' : 'Confidential'}
                     </span>
                   </div>
                   <span className="text-[10px] text-amber-300/80 font-mono">
@@ -907,18 +991,18 @@ export default function ElakarKhoborHome() {
                   </span>
                 </div>
 
-                <div className="w-full p-3.5 mb-3 rounded-xl bg-slate-950/60 border border-amber-500/20 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
+                <div className="w-full p-3 mb-3 rounded-xl bg-slate-950/60 border border-amber-500/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-sm">
                       🔒
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-amber-300 font-mono">ENCRYPTED CLASSIFIED</div>
-                      <div className="text-[10px] text-slate-400">বারুণা পশ্চিম পাড়া গোপন অনুসন্ধানী নথি</div>
+                      <div className="text-[11px] font-bold text-amber-300 font-mono">ENCRYPTED VAULT</div>
+                      <div className="text-[9px] text-slate-400">বারুণা পশ্চিম পাড়া অনুসন্ধান</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-500/30">
-                    PIN REQUIRED
+                  <span className="text-[9px] font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-500/30">
+                    PIN
                   </span>
                 </div>
 
@@ -943,20 +1027,20 @@ export default function ElakarKhoborHome() {
               </div>
 
               <div className="flex flex-wrap items-center justify-between border-t border-white/10 pt-3 gap-2 text-xs mt-auto">
-                <span className="text-amber-400/80 font-mono text-[11px]">
+                <span className="text-amber-400/80 font-mono text-[10px]">
                   {latestSecret ? latestSecret.code : ''}
                 </span>
                 {latestSecret && !approvedSecrets.includes(latestSecret.id) ? (
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => { setSelectedSecretId(latestSecret.id); setIsRequestModalOpen(true); }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-amber-300 border border-amber-500/30 text-xs font-semibold transition cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-amber-300 border border-amber-500/30 text-xs font-semibold transition cursor-pointer"
                     >
                       {t.requestBtn}
                     </button>
                     <button 
                       onClick={() => { setSelectedSecretId(latestSecret.id); setIsUnlockModalOpen(true); }}
-                      className="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition shadow shadow-amber-950/40 cursor-pointer"
+                      className="px-3.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition shadow shadow-amber-950/40 cursor-pointer"
                     >
                       {t.unlockBtn}
                     </button>
@@ -967,11 +1051,155 @@ export default function ElakarKhoborHome() {
               </div>
             </div>
 
+            {/* BOX 3: MEDIUM SIZED HEADLINES BUTTON / BOX (Col 3) */}
+            <div 
+              onClick={() => setIsHeadlineSliderOpen(true)}
+              className="lg:col-span-3 bg-gradient-to-b from-rose-950/20 via-slate-950/60 to-purple-950/20 backdrop-blur-[2px] rounded-2xl p-5 border border-rose-500/30 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] hover:border-rose-400 hover:scale-[1.01] transition-all duration-300 flex flex-col justify-between max-h-[480px] cursor-pointer group"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-gradient-to-r from-rose-600 to-indigo-600 text-white">
+                      {lang === 'bn' ? 'শিরোনাম / ৫ দিনের খতিয়ান' : 'Top Headlines'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-rose-300 font-mono">LIVE SLIDE</span>
+                </div>
+
+                <div className="space-y-3 mt-4">
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-rose-500/40 transition">
+                    <span className="text-[10px] text-rose-400 font-bold uppercase tracking-wider block mb-1">
+                      {lang === 'bn' ? 'চলতি ৫ দিনের তাজা খবর' : 'Last 5 Days Bulletin'}
+                    </span>
+                    <p className="text-xs font-semibold text-white line-clamp-2 leading-relaxed">
+                      {activeSliderArticles[0] 
+                        ? (lang === 'bn' ? (activeSliderArticles[0].title_bn || activeSliderArticles[0].title_en) : (activeSliderArticles[0].title_en || activeSliderArticles[0].title_bn))
+                        : 'বারুণা পশ্চিম পাড়ার খবরের লাইভ হেডলাইন তালিকা'}
+                    </p>
+                  </div>
+
+                  {activeSliderArticles.length > 1 && (
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 group-hover:border-indigo-500/40 transition">
+                      <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block mb-1">
+                        {lang === 'bn' ? 'আরেকটি শীর্ষ সংবাদ' : 'Recent Lead'}
+                      </span>
+                      <p className="text-xs font-semibold text-slate-200 line-clamp-2 leading-relaxed">
+                        {lang === 'bn' ? (activeSliderArticles[1].title_bn || activeSliderArticles[1].title_en) : (activeSliderArticles[1].title_en || activeSliderArticles[1].title_bn)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-medium group-hover:text-rose-300 transition">
+                  {lang === 'bn' ? 'অ্যানিমেশন ভিউতে দেখুন' : 'Open Slider View'}
+                </span>
+                <span className="w-7 h-7 rounded-full bg-rose-600 group-hover:bg-rose-500 text-white flex items-center justify-center text-xs font-bold shadow transition">
+                  ↗
+                </span>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* PUBLIC NEWS GRID WITH ENTERTAINMENT FILTER */}
+      {/* FULL-SCREEN VIDEO-STYLE HEADLINE SLIDER OVERLAY */}
+      {isHeadlineSliderOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-6 sm:p-12 overflow-hidden">
+          {/* Header Bar with Clear Cross (✕) Button */}
+          <div className="flex items-center justify-between w-full max-w-6xl mx-auto z-20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-rose-900/50">
+                ✦
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-extrabold text-white tracking-wide">
+                  {lang === 'bn' ? '৫ দিনের শীর্ষ সংবাদ শিরোনাম' : '5-Day News Digest & Pulse'}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  {lang === 'bn' ? 'স্বয়ংক্রিয়ভাবে পরিবর্তিত হচ্ছে • বারুণা পশ্চিম পাড়া' : 'Auto Sliding Stream • Live Updates'}
+                </p>
+              </div>
+            </div>
+
+            {/* CLEAR ✕ CROSS BUTTON */}
+            <button
+              onClick={() => setIsHeadlineSliderOpen(false)}
+              className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center text-xl font-black transition-all duration-300 border border-white/15 shadow-2xl cursor-pointer hover:rotate-90"
+              title="বন্ধ করুন"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Floating Kinetic Typography & Glass Cards Canvas */}
+          <div className="relative my-auto w-full max-w-4xl mx-auto flex flex-col items-center text-center px-4 py-8">
+            {activeSliderArticles.length > 0 ? (
+              (() => {
+                const cur = activeSliderArticles[sliderIndex];
+                const curTitle = lang === 'bn' ? (cur.title_bn || cur.title_en) : (cur.title_en || cur.title_bn);
+                const curSummary = lang === 'bn' ? (cur.summary_bn || cur.summary_en) : (cur.summary_en || cur.summary_bn);
+                const curTag = lang === 'bn' ? (cur.tag_bn || 'শীর্ষ সংবাদ') : (cur.tag_en || 'Top News');
+
+                return (
+                  <div key={cur.id || sliderIndex} className="space-y-6 transition-all duration-700">
+                    {/* Floating Pill Badge */}
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-rose-300 text-xs font-mono font-bold shadow-lg">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                      <span>{curTag}</span>
+                      <span className="text-slate-500">•</span>
+                      <span>{sliderIndex + 1} / {activeSliderArticles.length}</span>
+                    </div>
+
+                    {/* Kinetic Headline Display */}
+                    <h2 
+                      onClick={() => { setIsHeadlineSliderOpen(false); setSelectedArticle(cur); }}
+                      className="text-2xl sm:text-5xl font-black text-white leading-tight tracking-tight hover:text-rose-400 cursor-pointer transition max-w-3xl drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]"
+                    >
+                      {curTitle}
+                    </h2>
+
+                    {/* Brief Synopsis Card */}
+                    <p className="text-slate-300 text-sm sm:text-lg max-w-2xl mx-auto leading-relaxed font-light line-clamp-3">
+                      {curSummary}
+                    </p>
+
+                    {/* Full Read Button */}
+                    <div className="pt-4 flex justify-center items-center gap-4">
+                      <button 
+                        onClick={() => { setIsHeadlineSliderOpen(false); setSelectedArticle(cur); }}
+                        className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl transition cursor-pointer"
+                      >
+                        {lang === 'bn' ? 'সম্পূর্ণ খবরটি পড়ুন →' : 'Read Full Story →'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <p className="text-slate-400 text-sm">
+                {lang === 'bn' ? 'গত ৫ দিনে কোনো খবর পোস্ট করা হয়নি।' : 'No news found in the last 5 days.'}
+              </p>
+            )}
+          </div>
+
+          {/* Bottom Indicators */}
+          <div className="w-full max-w-md mx-auto flex items-center justify-center gap-2 z-20 pb-4">
+            {activeSliderArticles.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setSliderIndex(i)}
+                className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${sliderIndex === i ? 'w-8 bg-rose-500 shadow-lg shadow-rose-500/50' : 'w-2 bg-white/20'}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* PUBLIC NEWS GRID WITH POST DISCLAIMER */}
       <section id="public-news-section" className="relative z-10 max-w-7xl mx-auto px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-white/10">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">{t.publicTitle}</h2>
@@ -1041,9 +1269,17 @@ export default function ElakarKhoborHome() {
                         {currentTitle}
                       </h3>
 
-                      <p className="text-xs text-slate-300/80 leading-relaxed mb-4 line-clamp-3">
+                      <p className="text-xs text-slate-300/80 leading-relaxed mb-3 line-clamp-3">
                         {currentSummary}
                       </p>
+
+                      {/* POST DISCLAIMER BOX */}
+                      <div className="mb-3 p-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-[10px] text-amber-200/80 leading-relaxed">
+                        ⚠️ <strong>{lang === 'bn' ? 'বিজ্ঞপ্তি:' : 'Notice:'}</strong>{' '}
+                        {lang === 'bn'
+                          ? 'এই পোস্টটি স্থানীয় সূত্রে প্রাপ্ত তথ্যের ভিত্তিতে তৈরি। পোস্ট অপসারণ বা সংশোধনের জন্য যোগাযোগ করুন।'
+                          : 'This post is based on local community sources. Contact for takedown or correction.'}
+                      </div>
                     </div>
                     
                     <div className="pt-3 border-t border-white/5 space-y-3">
@@ -1130,7 +1366,7 @@ export default function ElakarKhoborHome() {
         </div>
       </section>
 
-      {/* FULL ARTICLE POPUP READER */}
+      {/* FULL ARTICLE POPUP READER WITH DISCLAIMER */}
       {selectedArticle && (
         <div 
           className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
@@ -1182,6 +1418,19 @@ export default function ElakarKhoborHome() {
                 : (selectedArticle.summary_en || selectedArticle.summary_bn)}
             </div>
 
+            {/* FULL POST DISCLAIMER */}
+            <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-200/90 leading-relaxed my-3">
+              <div className="font-bold flex items-center gap-1.5 text-amber-300 mb-1">
+                <span>⚠️</span>
+                <span>{lang === 'bn' ? 'আইনি ও সম্পাদকীয় বিজ্ঞপ্তি' : 'Legal & Editorial Disclaimer'}</span>
+              </div>
+              <p>
+                {lang === 'bn'
+                  ? 'এই পোস্টটি স্থানীয় সূত্রে প্রাপ্ত তথ্যের ভিত্তিতে তৈরি। পোস্ট অপসারণ বা সংশোধনের জন্য যোগাযোগ করুন: elakarkhobor24.news@gmail.com'
+                  : 'This post is based on local community sources. Contact for takedown or correction: elakarkhobor24.news@gmail.com'}
+              </p>
+            </div>
+
             <div className="pt-4 border-t border-white/10 flex flex-wrap justify-between items-center gap-3">
               <button 
                 onClick={() => handleFacebookShare(selectedArticle.id)}
@@ -1204,6 +1453,58 @@ export default function ElakarKhoborHome() {
         </div>
       )}
 
+      {/* 3-DOT CORNER MENU MODAL DISPLAY */}
+      {selectedExtraModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/15 p-6 rounded-3xl w-full max-w-lg shadow-2xl relative">
+            <button 
+              onClick={() => setSelectedExtraModal(null)} 
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-white flex items-center justify-center text-sm font-bold transition cursor-pointer"
+            >
+              ✕
+            </button>
+            
+            <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+              {selectedExtraModal === 'load_shedding' && '⚡ বিদ্যুৎ শিডিউল / লোডশেডিং অ্যালার্ট'}
+              {selectedExtraModal === 'sports' && '⚽ স্থানীয় খেলাধুলা সংবাদ'}
+              {selectedExtraModal === 'stories' && '📜 পুরনো গল্প ও ইতিহাস'}
+              {selectedExtraModal === 'education' && '🎓 পড়াশোনা ও ক্যারিয়ার তথ্য'}
+              {selectedExtraModal === 'history' && '⏳ ইতিহাসে আজকের দিন'}
+              {selectedExtraModal === 'weather' && '☁️ লাইভ আবহাওয়া আপডেট'}
+            </h3>
+
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 text-slate-200 text-sm leading-relaxed">
+              {selectedExtraModal === 'load_shedding' && siteExtras.load_shedding}
+              {selectedExtraModal === 'sports' && siteExtras.sports}
+              {selectedExtraModal === 'stories' && siteExtras.stories}
+              {selectedExtraModal === 'education' && siteExtras.education}
+              {selectedExtraModal === 'history' && (
+                <div>
+                  <p className="font-semibold text-rose-300 mb-1">আজকের তাৎপর্যপূর্ণ ঘটনা:</p>
+                  <p>১৯২৩ সালের এই দিনে বাংলা সাহিত্যের বিশেষ অধ্যায় সূচিত হয়েছিল। বারুণা অঞ্চলের শতবর্ষী ইতিহাস ও ঐতিহ্যের স্মারক এই দিনে স্মরণীয়।</p>
+                </div>
+              )}
+              {selectedExtraModal === 'weather' && (
+                <div>
+                  <p className="text-sky-300 font-bold mb-2">খুলনা ও তৎসংলগ্ন অঞ্চলের পূর্বাভাস:</p>
+                  <p className="text-lg text-white font-mono mb-2">তাপমাত্রা: {weatherStr}</p>
+                  <p className="text-xs text-slate-400">উৎস: Open-Meteo রিয়েল-টাইম স্যাটেলাইট এপিআই। আবহাওয়া তথ্য সার্বক্ষণিক অটো আপডেট হচ্ছে।</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button 
+                onClick={() => setSelectedExtraModal(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition cursor-pointer"
+              >
+                ঠিক আছে
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* FOOTER */}
       <footer className="relative z-10 border-t border-white/10 bg-[#04060c]/80 backdrop-blur py-8 px-4 mt-20">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
@@ -1211,15 +1512,15 @@ export default function ElakarKhoborHome() {
             © ২০২৬ {t.brand} | {lang === 'bn' ? 'বারুণা পশ্চিম পাড়া' : 'Baruna Poschim Para'}
           </div>
           <div className="flex flex-wrap gap-4 items-center">
-            <button onClick={() => { setPolicyTab('about'); setIsPolicyModalOpen(true); }} className="hover:text-white transition">{lang === 'bn' ? 'আমাদের সম্পর্কে' : 'About Us'}</button>
-            <button onClick={() => { setPolicyTab('editorial'); setIsPolicyModalOpen(true); }} className="hover:text-white transition">{lang === 'bn' ? 'সম্পাদকীয় নীতি' : 'Editorial Policy'}</button>
-            <button onClick={() => { setPolicyTab('privacy'); setIsPolicyModalOpen(true); }} className="hover:text-white transition">{lang === 'bn' ? 'গোপনীয়তা' : 'Privacy Policy'}</button>
-            <button onClick={() => { setPolicyTab('contact'); setIsPolicyModalOpen(true); }} className="hover:text-white transition text-rose-400 font-semibold">{lang === 'bn' ? 'যোগাযোগ' : 'Contact Us'}</button>
+            <button onClick={() => { setPolicyTab('about'); setIsPolicyModalOpen(true); }} className="hover:text-white transition cursor-pointer">{lang === 'bn' ? 'আমাদের সম্পর্কে' : 'About Us'}</button>
+            <button onClick={() => { setPolicyTab('editorial'); setIsPolicyModalOpen(true); }} className="hover:text-white transition cursor-pointer">{lang === 'bn' ? 'সম্পাদকীয় নীতি' : 'Editorial Policy'}</button>
+            <button onClick={() => { setPolicyTab('privacy'); setIsPolicyModalOpen(true); }} className="hover:text-white transition cursor-pointer">{lang === 'bn' ? 'গোপনীয়তা' : 'Privacy Policy'}</button>
+            <button onClick={() => { setPolicyTab('contact'); setIsPolicyModalOpen(true); }} className="hover:text-white transition text-rose-400 font-semibold cursor-pointer">{lang === 'bn' ? 'যোগাযোগ' : 'Contact Us'}</button>
           </div>
-          {/* SECURE ADMIN ENTRY: Renamed to elakar khobor so regular users won't notice */}
+          {/* SECURE ADMIN ENTRY */}
           <button 
             onClick={() => setIsAdminLoginOpen(true)} 
-            className="text-slate-600 hover:text-slate-400 font-mono transition text-xs"
+            className="text-slate-600 hover:text-slate-400 font-mono transition text-xs cursor-pointer"
           >
             elakar khobor
           </button>
@@ -1234,7 +1535,7 @@ export default function ElakarKhoborHome() {
               <h3 className="text-base sm:text-lg font-bold text-white">
                 {lang === 'bn' ? 'বারুণা পশ্চিম পাড়া ও স্থানীয় সীমানা ম্যাপ' : 'Baruna Poschim Para Community Map'}
               </h3>
-              <button onClick={() => setIsMapModalOpen(false)} className="text-slate-400 hover:text-white text-lg p-1">✕</button>
+              <button onClick={() => setIsMapModalOpen(false)} className="text-slate-400 hover:text-white text-lg p-1 cursor-pointer">✕</button>
             </div>
             <div className="w-full h-[460px] rounded-2xl overflow-hidden border border-white/10 bg-slate-950">
               <iframe
@@ -1257,7 +1558,7 @@ export default function ElakarKhoborHome() {
           <div className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-sm text-center relative shadow-2xl">
             <button 
               onClick={() => { setIsAdminLoginOpen(false); setAdminPinError(false); }} 
-              className="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white text-lg cursor-pointer"
             >✕</button>
             <h3 className="text-lg font-bold text-white mb-4">অ্যাডমিন প্রবেশাধিকার</h3>
             <form onSubmit={handleAdminLogin} className="space-y-4">
@@ -1273,7 +1574,7 @@ export default function ElakarKhoborHome() {
               )}
               <button 
                 type="submit" 
-                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg transition"
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg transition cursor-pointer"
               >
                 লগইন
               </button>
@@ -1294,10 +1595,10 @@ export default function ElakarKhoborHome() {
                   📊 {lang === 'bn' ? `মোট সাইট ভিজিটর: ${visitorCount}` : `Total Visitors: ${visitorCount}`}
                 </span>
               </div>
-              <button onClick={() => setIsAdminPanelOpen(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+              <button onClick={() => setIsAdminPanelOpen(false)} className="text-slate-400 hover:text-white text-xl cursor-pointer">✕</button>
             </div>
 
-            {/* 1. PUBLIC NEWS FORM (WITH ENTERTAINMENT OPTION) */}
+            {/* 1. PUBLIC NEWS FORM */}
             <div className="bg-slate-950/80 p-5 rounded-2xl border border-rose-500/30">
               <h4 className="text-sm font-bold text-rose-400 mb-4">{lang === 'bn' ? '১. নতুন প্রকাশ্য সংবাদ প্রকাশ করুন (ছবি সহ)' : '1. Publish Public News (With Photo)'}</h4>
               <form onSubmit={handlePublishNews} className="space-y-4">
@@ -1360,7 +1661,7 @@ export default function ElakarKhoborHome() {
                       <button 
                         type="button" 
                         onClick={() => setNewImageBase64('')}
-                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] cursor-pointer"
                       >✕</button>
                     </div>
                   )}
@@ -1546,11 +1847,60 @@ export default function ElakarKhoborHome() {
               </form>
             </div>
 
-            {/* 3. PENDING REQUESTS */}
+            {/* 3. SITE EXTRAS MANAGEMENT */}
+            <div className="bg-slate-950/80 p-5 rounded-2xl border border-indigo-500/30 space-y-4">
+              <h4 className="text-sm font-bold text-indigo-400">
+                {lang === 'bn' ? '৩. সাইট মেনু ব্যবস্থাপনা (লোডশেডিং, খেলাধুলা, গল্প ও শিক্ষা)' : '3. Manage Menu Sections'}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">⚡ লোডশেডিং শিডিউল বার্তা</label>
+                  <textarea 
+                    rows={2} 
+                    value={siteExtras.load_shedding} 
+                    onChange={e => setSiteExtras({ ...siteExtras, load_shedding: e.target.value })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white" 
+                  />
+                  <button onClick={() => handleSaveExtra('load_shedding', siteExtras.load_shedding)} className="mt-1 px-3 py-1 bg-indigo-600 text-white rounded text-[11px] font-bold cursor-pointer">সেভ করুন</button>
+                </div>
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">⚽ খেলাধুলা সংবাদ</label>
+                  <textarea 
+                    rows={2} 
+                    value={siteExtras.sports} 
+                    onChange={e => setSiteExtras({ ...siteExtras, sports: e.target.value })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white" 
+                  />
+                  <button onClick={() => handleSaveExtra('sports', siteExtras.sports)} className="mt-1 px-3 py-1 bg-indigo-600 text-white rounded text-[11px] font-bold cursor-pointer">সেভ করুন</button>
+                </div>
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">📜 পুরনো গল্প ও স্মৃতিচারণ</label>
+                  <textarea 
+                    rows={2} 
+                    value={siteExtras.stories} 
+                    onChange={e => setSiteExtras({ ...siteExtras, stories: e.target.value })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white" 
+                  />
+                  <button onClick={() => handleSaveExtra('stories', siteExtras.stories)} className="mt-1 px-3 py-1 bg-indigo-600 text-white rounded text-[11px] font-bold cursor-pointer">সেভ করুন</button>
+                </div>
+                <div>
+                  <label className="text-slate-400 font-bold block mb-1">🎓 পড়াশোনা ও নোটিশ</label>
+                  <textarea 
+                    rows={2} 
+                    value={siteExtras.education} 
+                    onChange={e => setSiteExtras({ ...siteExtras, education: e.target.value })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-white" 
+                  />
+                  <button onClick={() => handleSaveExtra('education', siteExtras.education)} className="mt-1 px-3 py-1 bg-indigo-600 text-white rounded text-[11px] font-bold cursor-pointer">সেভ করুন</button>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. PENDING REQUESTS */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-xs font-bold text-amber-400">
-                  {lang === 'bn' ? '৩. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা:' : '3. Pending Clearance Requests:'}
+                  {lang === 'bn' ? '৪. গোপন সংবাদের অনুমোদনের অপেক্ষমাণ তালিকা:' : '4. Pending Clearance Requests:'}
                 </h4>
                 <button 
                   type="button" 
@@ -1575,9 +1925,9 @@ export default function ElakarKhoborHome() {
               </div>
             </div>
 
-            {/* 4. CITIZEN TIPS */}
+            {/* 5. CITIZEN TIPS */}
             <div>
-              <h4 className="text-xs font-bold text-sky-400 mb-2">{lang === 'bn' ? '৪. পাঠকদের পাঠানো খবরের ইনবক্স:' : '4. Citizen Tips Inbox:'}</h4>
+              <h4 className="text-xs font-bold text-sky-400 mb-2">{lang === 'bn' ? '৫. পাঠকদের পাঠানো খবরের ইনবক্স:' : '5. Citizen Tips Inbox:'}</h4>
               <div className="space-y-2">
                 {citizenTips.length === 0 ? <p className="text-xs text-slate-500">{lang === 'bn' ? 'কোনো খবর জমা নেই।' : 'No tips received.'}</p> : citizenTips.map(t => (
                   <div key={t.id} className="p-3 bg-slate-950 rounded-xl text-xs space-y-1 border border-white/5">
