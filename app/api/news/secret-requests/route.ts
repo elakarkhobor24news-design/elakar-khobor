@@ -22,7 +22,7 @@ export async function GET() {
   }
 }
 
-// 2. POST: Submit a new access clearance request + notify Telegram with Approve Button
+// 2. POST: Submit a new access clearance request + notify Telegram with instant Callback Button
 export async function POST(req: Request) {
   try {
     const { id, doc_id, name, reason, time } = await req.json();
@@ -40,10 +40,8 @@ export async function POST(req: Request) {
       ]);
     }
 
-    // Telegram Notification with Direct Inline Approval Button
+    // Telegram Notification with Direct In-App Callback Button (No external browser popup)
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const approveUrl = `https://elakar-khobor.netlify.app/api/news/approve?reqId=${id}&docId=${doc_id}`;
-      
       const text = `🔐 *অনুমতির নতুন অনুরোধ এসেছে!*\n\n👤 *পাঠক:* ${name}\n📄 *নথি কোড:* ${doc_id}\n📝 *কারণ:* ${reason}\n⏰ *সময়:* ${time}`;
 
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -58,7 +56,7 @@ export async function POST(req: Request) {
               [
                 {
                   text: '✅ অনুমোদন দিন (Approve)',
-                  url: approveUrl,
+                  callback_data: `approve:${id}:${doc_id}`,
                 },
               ],
             ],
