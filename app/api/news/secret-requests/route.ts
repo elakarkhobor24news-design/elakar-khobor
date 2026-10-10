@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
@@ -15,20 +15,17 @@ export async function GET() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ requests: [] });
-    }
+    if (error) throw error;
     return NextResponse.json({ requests: data || [] });
-  } catch {
-    return NextResponse.json({ requests: [] });
+  } catch (err: any) {
+    return NextResponse.json({ requests: [], error: err.message });
   }
 }
 
-// 2. POST: Reader submits request -> Save to DB & Send to Telegram
+// 2. POST: Submit a new access clearance request + notify Telegram with Approve Button
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { id, doc_id, name, reason, time } = body;
+    const { id, doc_id, name, reason, time } = await req.json();
 
     if (supabase) {
       await supabase.from('secret_requests').insert([
@@ -38,14 +35,16 @@ export async function POST(req: Request) {
           name,
           reason,
           time,
-          status: 'pending'
-        }
+          status: 'pending',
+        },
       ]);
     }
 
-    // Send Instant Alert to Telegram
+    // Telegram Notification with Direct Inline Approval Button
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const text = `🔔 *নতুন সিক্রেট রিপোর্ট রিকোয়েস্ট!*\n\n👤 *নাম:* ${name}\n📝 *কারণ:* ${reason}\n📁 *ডকুমেন্ট:* \`${doc_id}\`\n⏰ *সময়:* ${time}`;
+      const approveUrl = `https://elakar-khobor.netlify.app/api/news/approve?reqId=${id}&docId=${doc_id}`;
+      
+      const text = `🔐 *অনুমতির নতুন অনুরোধ এসেছে!*\n\n👤 *পাঠক:* ${name}\n📄 *নথি কোড:* ${doc_id}\n📝 *কারণ:* ${reason}\n⏰ *সময়:* ${time}`;
 
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
@@ -53,8 +52,18 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
           text: text,
-          parse_mode: 'Markdown'
-        })
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '✅ অনুমোদন দিন (Approve)',
+                  url: approveUrl,
+                },
+              ],
+            ],
+          },
+        }),
       });
     }
 
@@ -67,7 +76,7 @@ export async function POST(req: Request) {
 // 3. DELETE / APPROVE: Mark as approved or clear
 export async function DELETE(req: Request) {
   try {
-    const { id, docId } = await req.json();
+    const { id } = await req.json();
 
     if (supabase) {
       await supabase
