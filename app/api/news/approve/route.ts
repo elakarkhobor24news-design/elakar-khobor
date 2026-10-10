@@ -1,32 +1,34 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const reqId = searchParams.get('reqId');
-  const docId = searchParams.get('docId');
 
-  if (!reqId || !docId) {
-    return new Response('Invalid Request', { status: 400 });
+  if (supabase && reqId) {
+    await supabase
+      .from('secret_requests')
+      .update({ status: 'approved' })
+      .eq('id', reqId);
   }
 
-  try {
-    await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://elakar-khobor.netlify.app'}/api/news/secret-requests`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: reqId, docId }),
-    });
-
-    return new Response(`
-      <html>
-        <body style="background:#090d16;color:#22c55e;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-          <div style="text-align:center;padding:24px;background:#111827;border-radius:16px;border:1px solid #16a34a;">
-            <h2>✓ Anumodon Shofol Hoyeche!</h2>
-            <p style="color:#e2e8f0;">Pathok ekhon secret document-ti porte parbe.</p>
-          </div>
-        </body>
-      </html>
-    `, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-  } catch (err: any) {
-    return new Response('Error approving request: ' + err.message, { status: 500 });
-  }
+  return new Response(
+    `<!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>অনুমোদিত</title>
+      </head>
+      <body style="background:#04060c;color:#10b981;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
+        <div style="padding:30px;background:#0f172a;border-radius:20px;border:1px solid #10b981;max-width:320px;">
+          <h1 style="font-size:40px;margin:0 0 10px;">✓</h1>
+          <h2 style="margin:0;font-size:18px;">অনুমোদন সফল হয়েছে!</h2>
+          <p style="color:#94a3b8;font-size:13px;margin-top:8px;">পাঠক এখন তার স্ক্রিনে গোপন প্রতিবেদনটি দেখতে পাচ্ছে।</p>
+        </div>
+      </body>
+    </html>`,
+    {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }
+  );
 }

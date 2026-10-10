@@ -4,12 +4,9 @@ import { supabase } from '@/lib/supabase';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
-// 1. GET: Fetch pending requests
 export async function GET() {
   try {
-    if (!supabase) {
-      return NextResponse.json({ requests: [] });
-    }
+    if (!supabase) return NextResponse.json({ requests: [] });
     const { data, error } = await supabase
       .from('secret_requests')
       .select('*')
@@ -22,7 +19,6 @@ export async function GET() {
   }
 }
 
-// 2. POST: Submit a new access clearance request + notify Telegram with instant Callback Button
 export async function POST(req: Request) {
   try {
     const { id, doc_id, name, reason, time } = await req.json();
@@ -40,9 +36,9 @@ export async function POST(req: Request) {
       ]);
     }
 
-    // Telegram Notification with Direct In-App Callback Button (No external browser popup)
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const text = `🔐 *অনুমতির নতুন অনুরোধ এসেছে!*\n\n👤 *পাঠক:* ${name}\n📄 *নথি কোড:* ${doc_id}\n📝 *কারণ:* ${reason}\n⏰ *সময়:* ${time}`;
+      const approveLink = `https://elakar-khobor.netlify.app/api/news/approve?reqId=${id}`;
+      const text = `🔐 *অনুমতির নতুন অনুরোধ এসেছে!*\n\n👤 *পাঠক:* ${name}\n📄 *নথি কোড:* ${doc_id}\n📝 *কারণ:* ${reason}\n⏰ *সময়:* ${time}\n\n👉 *অনুমোদন দিতে নিচের লিংকে চাপুন:*\n${approveLink}`;
 
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
@@ -51,16 +47,6 @@ export async function POST(req: Request) {
           chat_id: TELEGRAM_CHAT_ID,
           text: text,
           parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: '✅ অনুমোদন দিন (Approve)',
-                  callback_data: `approve:${id}:${doc_id}`,
-                },
-              ],
-            ],
-          },
         }),
       });
     }
@@ -71,18 +57,15 @@ export async function POST(req: Request) {
   }
 }
 
-// 3. DELETE / APPROVE: Mark as approved or clear
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-
     if (supabase) {
       await supabase
         .from('secret_requests')
         .update({ status: 'approved' })
         .eq('id', id);
     }
-
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
