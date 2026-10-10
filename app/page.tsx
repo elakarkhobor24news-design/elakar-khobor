@@ -224,6 +224,9 @@ export default function ElakarKhoborHome() {
   const [adminPinError, setAdminPinError] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
+  // Visitor Counter State
+  const [visitorCount, setVisitorCount] = useState<number>(0);
+
   // Articles list
   const [publicArticles, setPublicArticles] = useState<any[]>([]);
 
@@ -280,6 +283,20 @@ export default function ElakarKhoborHome() {
   const latestPublic = publicArticles.length > 0 ? publicArticles[0] : null;
   const latestSecret = secretArticles.length > 0 ? secretArticles[0] : null;
 
+  // Visitor Tracking Trigger
+  useEffect(() => {
+    try {
+      fetch('/api/visitors', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data && typeof data.count === 'number') {
+            setVisitorCount(data.count);
+          }
+        })
+        .catch(() => {});
+    } catch {}
+  }, []);
+
   // Image Upload Handler
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -316,7 +333,7 @@ export default function ElakarKhoborHome() {
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=620,height=580');
   };
 
-  // Live Fetch Pending Requests
+  // Live Fetch Pending Requests with Auto-approval sync
   const fetchPendingRequests = () => {
     fetch('/api/news/secret-requests', { cache: 'no-store' })
       .then((res) => res.json())
@@ -332,7 +349,7 @@ export default function ElakarKhoborHome() {
           }));
           setPendingRequests(formatted);
 
-          // Check if my requested document got approved by admin
+          // Check if my requested document got approved by admin or telegram bot
           try {
             const myLocalReqs = JSON.parse(localStorage.getItem('my_sent_requests') || '[]');
             const approvedDocIds: string[] = [];
@@ -342,13 +359,25 @@ export default function ElakarKhoborHome() {
               }
             });
             if (approvedDocIds.length > 0) {
-              setApprovedSecrets((prev) => Array.from(new Set([...prev, ...approvedDocIds])));
+              setApprovedSecrets((prev) => {
+                const combined = Array.from(new Set([...prev, ...approvedDocIds]));
+                localStorage.setItem('elakar_approved_secrets', JSON.stringify(combined));
+                return combined;
+              });
             }
           } catch {}
         }
       })
       .catch(() => {});
   };
+
+  // Polling hook: fast check every 3.5 seconds for instant reading
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      fetchPendingRequests();
+    }, 3500);
+    return () => clearInterval(pollInterval);
+  }, []);
 
   // Database Loader for Public, Secret Articles & Clearance Requests
   const loadArticles = () => {
@@ -577,7 +606,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Bulletproof Clearance Request Submit (Direct Error-Reporting)
+  // Bulletproof Clearance Request Submit (With Telegram Bot Notification Trigger)
   const handleClearanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const requestId = 'req-' + Date.now();
@@ -607,7 +636,7 @@ export default function ElakarKhoborHome() {
         return;
       }
 
-      alert(lang === 'bn' ? 'অনুরোধ ডাটাবেসে সফলভাবে পাঠানো হয়েছে! অ্যাডমিন অনুমোদন দিলেই পড়তে পারবেন।' : 'Clearance request submitted to database!');
+      alert(lang === 'bn' ? 'অনুরোধ সফলভাবে পাঠানো হয়েছে! অ্যাডমিনের অনুমোদন পেলেই স্বয়ংক্রিয়ভাবে খুলে যাবে।' : 'Clearance request submitted! Will unlock as soon as approved.');
       setIsRequestModalOpen(false);
       setReqName('');
       setReqReason('');
@@ -765,7 +794,7 @@ export default function ElakarKhoborHome() {
         </div>
       </div>
 
-      {/* HERO SECTION: BALANCED COMPACT TRANSPARENT BOXES */}
+      {/* HERO SECTION */}
       <section id="hero" className="relative z-10 py-10 px-4">
         <div className="max-w-7xl mx-auto flex flex-col items-start">
           <div className="flex flex-wrap items-center justify-between gap-4 w-full mb-3">
@@ -783,7 +812,6 @@ export default function ElakarKhoborHome() {
             {t.brand}
           </h1>
 
-          {/* TWO BALANCED COMPACT TRANSPARENT BOXES */}
           <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             
             {/* BOX 1: LATEST PUBLIC NEWS */}
@@ -794,7 +822,7 @@ export default function ElakarKhoborHome() {
                     {lang === 'bn' ? 'সর্বশেষ প্রকাশ্য সংবাদ' : 'Latest Public Story'}
                   </span>
                   <span className="text-[10px] text-slate-400 font-mono">
-                    {latestPublic ? (lang === 'bn' ? (latestPublic.tag_bn || 'দুর্গা মন্দির') : (latestPublic.tag_en || 'Durga Mondir')) : ''}
+                    {latestPublic ? (lang === 'bn' ? (latestPublic.tag_bn || 'সাধারণ') : (latestPublic.tag_en || 'General')) : ''}
                   </span>
                 </div>
 
@@ -869,7 +897,6 @@ export default function ElakarKhoborHome() {
                   </span>
                 </div>
 
-                {/* Secret Locked Card Banner */}
                 <div className="w-full p-3.5 mb-3 rounded-xl bg-slate-950/60 border border-amber-500/20 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-base">
@@ -894,7 +921,6 @@ export default function ElakarKhoborHome() {
                     : (lang === 'bn' ? 'কোনো গোপন অনুসন্ধানী নথি নেই।' : 'No confidential report in vault.')}
                 </h2>
 
-                {/* STRICT COMPACT PREVIEW */}
                 <div className="relative">
                   <p className="text-slate-300 text-xs leading-relaxed mb-3 font-light line-clamp-4">
                     {latestSecret 
@@ -935,7 +961,7 @@ export default function ElakarKhoborHome() {
         </div>
       </section>
 
-      {/* PUBLIC NEWS GRID */}
+      {/* PUBLIC NEWS GRID WITH ENTERTAINMENT FILTER */}
       <section id="public-news-section" className="relative z-10 max-w-7xl mx-auto px-4 py-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-white/10">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white">{t.publicTitle}</h2>
@@ -947,8 +973,9 @@ export default function ElakarKhoborHome() {
               placeholder={t.searchPlaceholder}
               className="bg-slate-900/40 backdrop-blur border border-white/15 rounded-xl px-3.5 py-1.5 text-xs text-white focus:outline-none focus:border-rose-500 w-full sm:w-60"
             />
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/40 backdrop-blur border border-white/15 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-900/40 backdrop-blur border border-white/15 text-xs">
               <button onClick={() => setActiveFilter('all')} className={`px-3 py-1 rounded-lg ${activeFilter === 'all' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>{t.filterAll}</button>
+              <button onClick={() => setActiveFilter('binodon')} className={`px-3 py-1 rounded-lg ${activeFilter === 'binodon' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>{lang === 'bn' ? 'বিনোদন' : 'Entertainment'}</button>
               <button onClick={() => setActiveFilter('muktir-dokan')} className={`px-3 py-1 rounded-lg ${activeFilter === 'muktir-dokan' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>{t.filterMuktir}</button>
               <button onClick={() => setActiveFilter('wapdar-matha')} className={`px-3 py-1 rounded-lg ${activeFilter === 'wapdar-matha' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>{t.filterWapda}</button>
               <button onClick={() => setActiveFilter('durga-mondir')} className={`px-3 py-1 rounded-lg ${activeFilter === 'durga-mondir' ? 'bg-rose-600 text-white' : 'text-slate-400'}`}>{t.filterDurga}</button>
@@ -959,7 +986,7 @@ export default function ElakarKhoborHome() {
         {publicArticles.length === 0 ? (
           <div className="text-center py-20 bg-white/[0.02] border border-white/10 rounded-3xl">
             <p className="text-slate-400 text-sm">
-              {lang === 'bn' ? 'বর্তমানে কোনো খবর নেই। নিচের PORTAL ACCESS বাটনে চাপ দিয়ে অ্যাডমিন প্যানেল থেকে সংবাদ পোস্ট করুন।' : 'No news published yet. Click PORTAL ACCESS below to add news.'}
+              {lang === 'bn' ? 'বর্তমানে কোনো খবর নেই। নিচের elakar khobor বাটনে চাপ দিয়ে অ্যাডমিন প্যানেল থেকে সংবাদ পোস্ট করুন।' : 'No news published yet. Click elakar khobor below to add news.'}
             </p>
           </div>
         ) : (
@@ -997,7 +1024,6 @@ export default function ElakarKhoborHome() {
                         {currentTag}
                       </span>
 
-                      {/* STRICT 2-LINE TITLE */}
                       <h3 
                         onClick={() => setSelectedArticle(item)}
                         className="text-base font-bold text-white mt-2.5 mb-2 cursor-pointer hover:text-rose-400 transition line-clamp-2 leading-snug"
@@ -1005,7 +1031,6 @@ export default function ElakarKhoborHome() {
                         {currentTitle}
                       </h3>
 
-                      {/* STRICT 3-LINE SUMMARY */}
                       <p className="text-xs text-slate-300/80 leading-relaxed mb-4 line-clamp-3">
                         {currentSummary}
                       </p>
@@ -1029,7 +1054,6 @@ export default function ElakarKhoborHome() {
                         </div>
                       </div>
                       
-                      {/* DEDICATED ARTICLE SHARE BUTTON */}
                       <button 
                         onClick={() => handleFacebookShare(item.id)}
                         className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2] text-[#1877F2] hover:text-white border border-[#1877F2]/30 text-xs font-bold transition shadow-sm cursor-pointer"
@@ -1182,7 +1206,13 @@ export default function ElakarKhoborHome() {
             <button onClick={() => { setPolicyTab('privacy'); setIsPolicyModalOpen(true); }} className="hover:text-white transition">{lang === 'bn' ? 'গোপনীয়তা' : 'Privacy Policy'}</button>
             <button onClick={() => { setPolicyTab('contact'); setIsPolicyModalOpen(true); }} className="hover:text-white transition text-rose-400 font-semibold">{lang === 'bn' ? 'যোগাযোগ' : 'Contact Us'}</button>
           </div>
-          <button onClick={() => setIsAdminLoginOpen(true)} className="text-slate-600 hover:text-rose-400 font-mono transition">PORTAL ACCESS</button>
+          {/* SECURE ADMIN ENTRY: Renamed to elakar khobor so regular users won't notice */}
+          <button 
+            onClick={() => setIsAdminLoginOpen(true)} 
+            className="text-slate-600 hover:text-slate-400 font-mono transition text-xs"
+          >
+            elakar khobor
+          </button>
         </div>
       </footer>
 
@@ -1247,29 +1277,37 @@ export default function ElakarKhoborHome() {
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-rose-500/40 p-6 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-6 relative shadow-2xl">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className="text-lg font-bold text-white">{lang === 'bn' ? 'পোর্টাল অ্যাডমিন ডেক্স' : 'Portal Operations Desk'}</h3>
+              <div>
+                <h3 className="text-lg font-bold text-white">{lang === 'bn' ? 'পোর্টাল অ্যাডমিন ডেক্স' : 'Portal Operations Desk'}</h3>
+                {/* Traffic / Visitor Stats */}
+                <span className="text-[11px] text-emerald-400 font-mono">
+                  📊 {lang === 'bn' ? `মোট সাইট ভিজিটর: ${visitorCount}` : `Total Visitors: ${visitorCount}`}
+                </span>
+              </div>
               <button onClick={() => setIsAdminPanelOpen(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
             </div>
 
-            {/* 1. PUBLIC NEWS FORM */}
+            {/* 1. PUBLIC NEWS FORM (WITH ENTERTAINMENT OPTION) */}
             <div className="bg-slate-950/80 p-5 rounded-2xl border border-rose-500/30">
               <h4 className="text-sm font-bold text-rose-400 mb-4">{lang === 'bn' ? '১. নতুন প্রকাশ্য সংবাদ প্রকাশ করুন (ছবি সহ)' : '1. Publish Public News (With Photo)'}</h4>
               <form onSubmit={handlePublishNews} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] text-slate-400">এলাকা / Landmark</label>
+                    <label className="text-[11px] text-slate-400">ক্যাটাগরি / Landmark</label>
                     <select 
                       value={newCategory} 
                       onChange={(e) => {
                         const cat = e.target.value;
                         setNewCategory(cat);
-                        if(cat === 'muktir-dokan') { setNewTagBn('মুক্তির দোকান'); setNewTagEn('Muktir Dokan'); }
-                        if(cat === 'wapdar-matha') { setNewTagBn('ওয়াপদার মাথা'); setNewTagEn('Wapdar Matha'); }
-                        if(cat === 'durga-mondir') { setNewTagBn('দুর্গা মন্দির'); setNewTagEn('Durga Mondir'); }
+                        if(cat === 'binodon') { setNewTagBn('বিনোদন'); setNewTagEn('Entertainment'); }
+                        else if(cat === 'muktir-dokan') { setNewTagBn('মুক্তির দোকান'); setNewTagEn('Muktir Dokan'); }
+                        else if(cat === 'wapdar-matha') { setNewTagBn('ওয়াপদার মাথা'); setNewTagEn('Wapdar Matha'); }
+                        else if(cat === 'durga-mondir') { setNewTagBn('দুর্গা মন্দির'); setNewTagEn('Durga Mondir'); }
                       }}
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white"
                     >
                       <option value="durga-mondir">দুর্গা মন্দির / Durga Mondir</option>
+                      <option value="binodon">বিনোদন / Entertainment</option>
                       <option value="muktir-dokan">মুক্তির দোকান / Muktir Dokan</option>
                       <option value="wapdar-matha">ওয়াপদার মাথা / Wapdar Matha</option>
                     </select>
@@ -1324,7 +1362,7 @@ export default function ElakarKhoborHome() {
                     <input 
                       required 
                       type="text" 
-                      placeholder="যেমন: দুর্গা মন্দির প্রাঙ্গণে সাজসজ্জা..." 
+                      placeholder="যেমন: বিনোদন জগতের তাজা খবর..." 
                       value={newTitleBn} 
                       onChange={e => setNewTitleBn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
@@ -1335,7 +1373,7 @@ export default function ElakarKhoborHome() {
                     <input 
                       required 
                       type="text" 
-                      placeholder="e.g. Durga Puja preparations..." 
+                      placeholder="e.g. Entertainment updates..." 
                       value={newTitleEn} 
                       onChange={e => setNewTitleEn(e.target.value)} 
                       className="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white" 
@@ -1378,7 +1416,7 @@ export default function ElakarKhoborHome() {
               </form>
             </div>
 
-            {/* 2. SECRET VAULT FORM (PERSISTED TO SUPABASE) */}
+            {/* 2. SECRET VAULT FORM */}
             <div className="bg-slate-950/80 p-5 rounded-2xl border border-amber-500/30">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-sm font-bold text-amber-400">
@@ -1498,7 +1536,7 @@ export default function ElakarKhoborHome() {
               </form>
             </div>
 
-            {/* 3. PENDING REQUESTS (WITH REAL-TIME REFRESH BUTTON) */}
+            {/* 3. PENDING REQUESTS */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-xs font-bold text-amber-400">

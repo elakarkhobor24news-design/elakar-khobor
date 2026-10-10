@@ -1,65 +1,79 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabaseServer';
+import { supabase } from '@/lib/supabaseClient';
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const payload = {
-      id: body.id || 'req-' + Date.now(),
-      doc_id: body.doc_id || body.docId || '',
-      name: body.name || 'বেনামী পাঠক',
-      reason: body.reason || 'তদন্তমূলক রিপোর্ট পড়তে চাই',
-      time: body.time || new Date().toLocaleTimeString('bn-BD', { timeZone: 'Asia/Dhaka' }),
-      status: 'pending'
-    };
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
-    const { data, error } = await supabaseServer
-      .from('secret_requests')
-      .insert([payload])
-      .select();
-
-    if (error) {
-      console.error('Supabase secret_requests insert error:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: true, request: data ? data[0] : payload });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
-  }
-}
-
+// 1. GET: Fetch pending requests
 export async function GET() {
   try {
-    const { data, error } = await supabaseServer
+    if (!supabase) {
+      return NextResponse.json({ requests: [] });
+    }
+    const { data, error } = await supabase
       .from('secret_requests')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Supabase secret_requests get error:', error);
-      return NextResponse.json({ success: false, error: error.message, requests: [] }, { status: 200 });
+      return NextResponse.json({ requests: [] });
     }
-
-    return NextResponse.json(
-      { success: true, requests: data || [] },
-      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
-    );
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message, requests: [] }, { status: 200 });
+    return NextResponse.json({ requests: data || [] });
+  } catch {
+    return NextResponse.json({ requests: [] });
   }
 }
 
+// 2. POST: Reader submits request -> Save to DB & Send to Telegram
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, doc_id, name, reason, time } = body;
+
+    if (supabase) {
+      await supabase.from('secret_requests').insert([
+        {
+          id,
+          doc_id,
+          name,
+          reason,
+          time,
+          status: 'pending'
+        }
+      ]);
+    }
+
+    // Send Instant Alert to Telegram
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      const text = `🔔 *নতুন সিক্রেট রিপোর্ট রিকোয়েস্ট!*\n\n👤 *নাম:* ${name}\n📝 *কারণ:* ${reason}\n📁 *ডকুমেন্ট:* \`${doc_id}\`\n⏰ *সময়:* ${time}`;
+
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text,
+          parse_mode: 'Markdown'
+        })
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
+// 3. DELETE / APPROVE: Mark as approved or clear
 export async function DELETE(req: Request) {
   try {
-    const { id } = await req.json();
-    const { error } = await supabaseServer
-      .from('secret_requests')
-      .delete()
-      .eq('id', id);
+    const { id, docId } = await req.json();
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    if (supabase) {
+      await supabase
+        .from('secret_requests')
+        .update({ status: 'approved' })
+        .eq('id', id);
     }
 
     return NextResponse.json({ success: true });
