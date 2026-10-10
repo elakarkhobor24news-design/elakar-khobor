@@ -666,7 +666,7 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  const handleTipSubmit = (e: React.FormEvent) => {
+  const handleTipSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newTip = {
       id: 'tip-' + Date.now(),
@@ -675,6 +675,16 @@ export default function ElakarKhoborHome() {
       content: tipContent,
       time: new Date().toLocaleString()
     };
+
+    // ব্যাকগ্রাউন্ডে গোপনে টেলিগ্রামে পাঠিয়ে দেবে
+    try {
+      await fetch('/api/news/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTip),
+      });
+    } catch {}
+
     const updated = [newTip, ...citizenTips];
     setCitizenTips(updated);
     localStorage.setItem('elakar_tips', JSON.stringify(updated));
