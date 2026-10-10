@@ -216,7 +216,7 @@ export default function ElakarKhoborHome() {
   const [isHeadlineSliderOpen, setIsHeadlineSliderOpen] = useState(false);
   const [sliderIndex, setSliderIndex] = useState(0);
 
-  // Extras Content (Manageable from Admin Panel)
+  // Extras Content
   const [siteExtras, setSiteExtras] = useState<Record<string, string>>({
     load_shedding: 'বারুণা পশ্চিম পাড়ায় আজ দুপুর ২টা থেকে বিকেল ৪টা পর্যন্ত লাইন মেরামতের জন্য বিদ্যুৎ বন্ধ থাকতে পারে।',
     sports: 'বারুণা তরুণ সংঘের আয়োজনে আগামী শুক্রবার স্থানীয় খেলার মাঠে ফুটবল টুর্নামেন্টের ফাইনাল ম্যাচ অনুষ্ঠিত হবে।',
@@ -297,15 +297,18 @@ export default function ElakarKhoborHome() {
   const latestPublic = publicArticles.length > 0 ? publicArticles[0] : null;
   const latestSecret = secretArticles.length > 0 ? secretArticles[0] : null;
 
-  // Last 5 days automatic filter for kinetic slider
-  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).getTime();
-  const lastFiveDaysArticles = publicArticles
-    .filter(a => {
+  // Last 5 days automatic filter (Safely calculated on client-side inside useEffect)
+  const [activeSliderArticles, setActiveSliderArticles] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+    const filtered = publicArticles.filter(a => {
       const artTime = a.created_at ? new Date(a.created_at).getTime() : Date.now();
       return artTime >= fiveDaysAgo;
-    })
-    .slice(0, 8);
-  const activeSliderArticles = lastFiveDaysArticles.length > 0 ? lastFiveDaysArticles : publicArticles.slice(0, 5);
+    }).slice(0, 8);
+
+    setActiveSliderArticles(filtered.length > 0 ? filtered : publicArticles.slice(0, 5));
+  }, [publicArticles]);
 
   // Auto slide interval (4.2 seconds auto rotation)
   useEffect(() => {
@@ -623,7 +626,6 @@ export default function ElakarKhoborHome() {
     }
   };
 
-  // Save Extras from Admin
   const handleSaveExtra = async (key: string, val: string) => {
     setSiteExtras(prev => ({ ...prev, [key]: val }));
     try {
