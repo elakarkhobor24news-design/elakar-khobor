@@ -15,11 +15,9 @@ export async function POST(req: Request) {
       const chatId = callbackQuery.message?.chat?.id;
 
       if (callbackData && callbackData.startsWith('approve:')) {
-        const parts = callbackData.split(':');
-        const reqId = parts[1];
-        const docId = parts[2];
+        const [, reqId] = callbackData.split(':');
 
-        // 1. Supabase ডাটাবেসে অনুমোদিত মার্ক করা
+        // ডাটাবেসে স্ট্যাটাস approved করা
         if (supabase && reqId) {
           await supabase
             .from('secret_requests')
@@ -27,39 +25,39 @@ export async function POST(req: Request) {
             .eq('id', reqId);
         }
 
-        // 2. টেলিগ্রামে ইনস্ট্যান্ট পপ-আপ মেসেজ দেখানো
-        if (TELEGRAM_BOT_TOKEN) {
+        // ১. টেলিগ্রামে পপ-আপ অ্যালার্ট দেখানো
+        if (TELEGRAM_BOT_TOKEN && callbackId) {
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               callback_query_id: callbackId,
-              text: '✅ অনুমোদন সফল হয়েছে! পাঠক এখন দেখতে পাবে।',
+              text: 'অনুমোদন সফল হয়েছে! পাঠক এখন পড়তে পারবে।',
               show_alert: true,
             }),
           });
+        }
 
-          // 3. বাটনটি বদলে "অনুমোদিত" বানিয়ে দেওয়া
-          if (chatId && messageId) {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: chatId,
-                message_id: messageId,
-                reply_markup: {
-                  inline_keyboard: [
-                    [
-                      {
-                        text: '✅ অনুমোদিত (Approved)',
-                        callback_data: 'none',
-                      },
-                    ],
+        // ২. মেসেজের বাটন বদলে সবুজ স্ট্যাটাস করে দেওয়া
+        if (TELEGRAM_BOT_TOKEN && chatId && messageId) {
+          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              message_id: messageId,
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: '✅ অনুমোদিত (Approved)',
+                      callback_data: 'done',
+                    },
                   ],
-                },
-              }),
-            });
-          }
+                ],
+              },
+            }),
+          });
         }
       }
     }
